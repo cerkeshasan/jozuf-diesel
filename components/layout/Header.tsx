@@ -121,9 +121,7 @@ export default function Header({ lang, t, categories, settings = {} }: HeaderPro
             {logoUrl ? (
               <Image src={logoUrl} alt="Jozuf Diesel" width={200} height={50} className="h-10 w-auto object-contain" />
             ) : (
-              <span className="font-oswald text-2xl font-bold text-[#0D1B2A]">
-                JOZUF<span className="text-[#C0202A]">DIESEL</span>
-              </span>
+              <Image src="/logo.svg" alt="Jozuf Diesel" width={180} height={44} className="h-10 w-auto" priority />
             )}
           </Link>
 
