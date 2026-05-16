@@ -139,13 +139,13 @@ export default function Footer({ lang, t, settings = {} }: FooterProps) {
           {/* ── Sol: Logo + Sosyal Medya ── */}
           <motion.div variants={colVariants} custom={0}>
             <Link href={`/${lang}`} className="inline-block mb-4">
-              {settings["logo_url"] ? (
-                <Image src={settings["logo_url"]} alt="Jozuf Diesel" width={200} height={50} className="h-10 w-auto object-contain brightness-0 invert" />
-              ) : (
-                <span className="font-oswald text-2xl font-bold tracking-wide">
-                  JOZUF<span className="text-[#C0202A]">DIESEL</span>
-                </span>
-              )}
+              <Image
+                src={settings["logo_url"] || "/logo.svg"}
+                alt="Jozuf Diesel"
+                width={200}
+                height={50}
+                className="h-10 w-auto object-contain brightness-0 invert"
+              />
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed mb-6">
               Common Rail & injector spare parts.<br />

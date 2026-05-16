@@ -16,17 +16,24 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   let gaId = "";
+  let faviconUrl = "/favicon.svg";
   try {
     const supabase = createServiceClient();
-    const { data } = await supabase.from("settings").select("value").eq("key", "google_analytics").single();
-    gaId = data?.value?.trim() || "";
+    const { data } = await supabase.from("settings").select("key, value").in("key", ["google_analytics", "favicon_url"]);
+    if (Array.isArray(data)) {
+      for (const row of data) {
+        if (row.key === "google_analytics") gaId = row.value?.trim() || "";
+        if (row.key === "favicon_url" && row.value?.trim()) faviconUrl = row.value.trim();
+      }
+    }
   } catch {
-    // no-op: GA is optional
+    // no-op: settings are optional
   }
 
   return (
     <html lang="en">
       <head>
+        <link rel="icon" href={faviconUrl} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
