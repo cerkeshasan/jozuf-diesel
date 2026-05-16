@@ -138,13 +138,13 @@ export default function Footer({ lang, t, settings = {} }: FooterProps) {
 
           {/* ── Sol: Logo + Sosyal Medya ── */}
           <motion.div variants={colVariants} custom={0}>
-            <Link href={`/${lang}`} className="inline-block mb-4">
+            <Link href={`/${lang}`} className="inline-block mb-4 bg-white rounded-xl px-3 py-2">
               <Image
                 src={settings["logo_url"] || "/logo.svg"}
                 alt="Jozuf Diesel"
-                width={200}
-                height={50}
-                className="h-10 w-auto object-contain brightness-0 invert"
+                width={300}
+                height={52}
+                className="h-8 w-auto object-contain"
               />
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed mb-6">
