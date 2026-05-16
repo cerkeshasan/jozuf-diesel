@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 48">
+  <rect width="120" height="48" fill="white"/>
+  <!-- Bosch red circle logo mark -->
+  <circle cx="24" cy="24" r="20" fill="#E20015"/>
+  <circle cx="24" cy="24" r="16" fill="white"/>
+  <circle cx="24" cy="24" r="11" fill="#E20015"/>
+  <!-- BOSCH text -->
+  <text x="52" y="30" font-family="Arial, sans-serif" font-weight="900" font-size="18" fill="#1A1A1A" letter-spacing="1">BOSCH</text>
+</svg>

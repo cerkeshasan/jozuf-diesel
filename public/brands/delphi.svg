@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 48">
+  <rect width="120" height="48" fill="white"/>
+  <text x="10" y="32" font-family="Arial, sans-serif" font-weight="900" font-size="22" fill="#003087" letter-spacing="1">delphi</text>
+  <rect x="10" y="35" width="65" height="3" rx="1.5" fill="#E8001C"/>
+</svg>

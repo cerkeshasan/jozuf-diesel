@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 48">
+  <rect width="140" height="48" fill="white"/>
+  <!-- Continental yellow C symbol -->
+  <circle cx="22" cy="24" r="16" fill="none" stroke="#F5A800" stroke-width="6"/>
+  <rect x="20" y="8" width="18" height="6" fill="white"/>
+  <!-- Text -->
+  <text x="44" y="30" font-family="Arial, sans-serif" font-weight="700" font-size="15" fill="#1A1A1A" letter-spacing="0.3">Continental</text>
+</svg>
