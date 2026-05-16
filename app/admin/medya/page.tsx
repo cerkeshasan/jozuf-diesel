@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Upload, Save, AlertCircle, CheckCircle, Info } from "lucide-react";
 import Image from "next/image";
+import { adminFetch } from "@/lib/admin-fetch";
 
 interface UploadSectionProps {
   label: string;
@@ -24,7 +25,7 @@ function UploadSection({ label, description, hint, settingKey, value, onUploaded
       const form = new FormData();
       form.append("file", file);
       form.append("bucket", "products");
-      const res = await fetch("/api/upload", { method: "POST", body: form });
+      const res = await adminFetch("/api/upload", { method: "POST", body: form });
       const data = await res.json();
       if (data.url) onUploaded(settingKey, data.url);
     } finally {
@@ -94,7 +95,7 @@ export default function AdminMediaPage() {
     setError("");
     setSaved(false);
     try {
-      const res = await fetch("/api/settings", {
+      const res = await adminFetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings),
