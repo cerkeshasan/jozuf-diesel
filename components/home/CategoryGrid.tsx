@@ -86,10 +86,12 @@ export default function CategoryGrid({ categories, lang, t }: CategoryGridProps)
                       {getCategoryName(cat, lang)}
                     </h3>
                     <div className="flex items-center justify-between mt-1">
-                      <span className="text-gray-400 text-sm">
-                        {cat.product_count || 0}{" "}
-                        {lang === "tr" ? "ürün" : lang === "ru" ? "товаров" : lang === "ar" ? "منتجات" : "products"}
-                      </span>
+                      {(cat.product_count || 0) > 0 && (
+                        <span className="text-gray-400 text-sm">
+                          {cat.product_count}{" "}
+                          {lang === "tr" ? "ürün" : lang === "ru" ? "товаров" : lang === "ar" ? "منتجات" : "products"}
+                        </span>
+                      )}
                       <span className="text-[#C0202A] text-sm font-medium group-hover:translate-x-1 transition-transform inline-block">
                         {t.home.explore}
                       </span>
