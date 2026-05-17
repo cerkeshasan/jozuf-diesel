@@ -6,12 +6,19 @@ export async function GET() {
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from("categories")
-    .select("*")
+    .select("*, products(count)")
     .eq("is_active", true)
     .order("order_index");
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+
+  const mapped = (data || []).map((cat) => ({
+    ...cat,
+    product_count: (cat.products as unknown as { count: number }[])?.[0]?.count ?? 0,
+    products: undefined,
+  }));
+
+  return NextResponse.json(mapped);
 }
 
 export async function POST(req: NextRequest) {
