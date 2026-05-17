@@ -87,9 +87,14 @@ export async function PUT(req: NextRequest) {
   if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
 
   const body = await req.json();
+  const parsed = ProductSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues }, { status: 400 });
+  }
+
   const { data, error } = await supabase
     .from("products")
-    .update({ ...body, updated_at: new Date().toISOString() })
+    .update({ ...parsed.data, updated_at: new Date().toISOString() })
     .eq("id", id)
     .select()
     .single();
