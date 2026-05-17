@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, FolderOpen, AlertCircle, CheckCircle } from "lucide-react";
+import { Plus, Edit, Trash2, FolderOpen, AlertCircle, CheckCircle, Copy } from "lucide-react";
 import { adminFetch } from "@/lib/admin-fetch";
 import type { Category } from "@/lib/supabase";
 import ImageUpload from "@/components/ui/ImageUpload";
@@ -20,6 +20,9 @@ export default function AdminCategoriesPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const fetchCategories = () =>
     fetch("/api/categories")
@@ -107,12 +110,43 @@ export default function AdminCategoriesPage() {
     const res = await adminFetch(`/api/categories?id=${id}`, { method: "DELETE" });
     if (res.ok) {
       setCategories((c) => c.filter((cat) => cat.id !== id));
+      setSelected((s) => { const n = new Set(s); n.delete(id); return n; });
       setSuccess("Kategori silindi.");
       setTimeout(() => setSuccess(""), 3000);
     } else {
       const data = await res.json();
       setError(data.error || "Silme başarısız.");
     }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`${selected.size} kategoriyi silmek istediğinizden emin misiniz?`)) return;
+    setBulkDeleting(true);
+    let deleted = 0;
+    for (const id of selected) {
+      const res = await adminFetch(`/api/categories?id=${id}`, { method: "DELETE" });
+      if (res.ok) deleted++;
+    }
+    setSelected(new Set());
+    setSuccess(`${deleted} kategori silindi.`);
+    setTimeout(() => setSuccess(""), 3000);
+    setBulkDeleting(false);
+    await fetchCategories();
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  };
+
+  const toggleAll = () => {
+    const allIds = categories.map((c) => c.id);
+    setSelected(selected.size === allIds.length ? new Set() : new Set(allIds));
+  };
+
+  const copyId = (id: string) => {
+    navigator.clipboard.writeText(id);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 1500);
   };
 
   const parents = categories.filter((c) => !c.parent_id);
@@ -125,13 +159,25 @@ export default function AdminCategoriesPage() {
           <h1 className="font-oswald text-2xl font-bold text-[#0D1B2A]">Kategoriler</h1>
           <p className="text-gray-500 text-sm">{categories.length} kategori</p>
         </div>
-        <button
-          onClick={openNew}
-          className="flex items-center gap-2 bg-[#C0202A] text-white px-4 py-2 rounded-xl font-medium hover:bg-[#a81b23] transition-colors"
-        >
-          <Plus size={18} />
-          Yeni Kategori
-        </button>
+        <div className="flex items-center gap-2">
+          {selected.size > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              disabled={bulkDeleting}
+              className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-red-600 transition-colors disabled:opacity-50 text-sm"
+            >
+              <Trash2 size={15} />
+              {bulkDeleting ? "Siliniyor..." : `${selected.size} Seçiliyi Sil`}
+            </button>
+          )}
+          <button
+            onClick={openNew}
+            className="flex items-center gap-2 bg-[#C0202A] text-white px-4 py-2 rounded-xl font-medium hover:bg-[#a81b23] transition-colors"
+          >
+            <Plus size={18} />
+            Yeni Kategori
+          </button>
+        </div>
       </div>
 
       {/* Notifications */}
@@ -260,38 +306,74 @@ export default function AdminCategoriesPage() {
             <p>Henüz kategori yok</p>
           </div>
         ) : (
+          {/* Table header */}
+          <div className="flex items-center gap-4 px-6 py-3 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            <input
+              type="checkbox"
+              checked={selected.size === categories.length && categories.length > 0}
+              onChange={toggleAll}
+              className="accent-[#C0202A] w-4 h-4"
+            />
+            <span className="w-5" />
+            <span className="flex-1">Kategori</span>
+            <span className="w-64 hidden md:block">ID</span>
+            <span className="w-28 text-right">İşlem</span>
+          </div>
+
           <div className="divide-y divide-gray-50">
             {parents.map((cat) => (
               <div key={cat.id}>
-                <div className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50">
+                <div className={`flex items-center gap-4 px-6 py-4 hover:bg-gray-50 ${selected.has(cat.id) ? "bg-red-50/40" : ""}`}>
+                  <input
+                    type="checkbox"
+                    checked={selected.has(cat.id)}
+                    onChange={() => toggleSelect(cat.id)}
+                    className="accent-[#C0202A] w-4 h-4 shrink-0"
+                  />
                   <FolderOpen size={18} className="text-[#C0202A] shrink-0" />
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm text-[#0D1B2A]">{cat.name_en}</p>
                     <p className="text-xs text-gray-400">/{cat.slug} · {cat.product_count} ürün</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="w-64 hidden md:flex items-center gap-1.5">
+                    <span className="font-mono text-xs text-gray-400 truncate">{cat.id}</span>
                     <button
-                      onClick={() => openEdit(cat)}
-                      className="flex items-center gap-1 text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg"
+                      onClick={() => copyId(cat.id)}
+                      className="shrink-0 text-gray-300 hover:text-gray-500 transition-colors"
+                      title="Kopyala"
                     >
+                      {copiedId === cat.id ? <CheckCircle size={13} className="text-green-500" /> : <Copy size={13} />}
+                    </button>
+                  </div>
+                  <div className="flex gap-2 w-28 justify-end">
+                    <button onClick={() => openEdit(cat)} className="flex items-center gap-1 text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg">
                       <Edit size={12} /> Düzenle
                     </button>
-                    <button
-                      onClick={() => handleDelete(cat.id, cat.name_en)}
-                      className="flex items-center gap-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg"
-                    >
+                    <button onClick={() => handleDelete(cat.id, cat.name_en)} className="flex items-center gap-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg">
                       <Trash2 size={12} /> Sil
                     </button>
                   </div>
                 </div>
                 {categories.filter((c) => c.parent_id === cat.id).map((child) => (
-                  <div key={child.id} className="flex items-center gap-4 px-6 py-3 pl-16 bg-gray-50/50 hover:bg-gray-50">
+                  <div key={child.id} className={`flex items-center gap-4 px-6 py-3 pl-14 bg-gray-50/50 hover:bg-gray-50 ${selected.has(child.id) ? "bg-red-50/40" : ""}`}>
+                    <input
+                      type="checkbox"
+                      checked={selected.has(child.id)}
+                      onChange={() => toggleSelect(child.id)}
+                      className="accent-[#C0202A] w-4 h-4 shrink-0"
+                    />
                     <FolderOpen size={14} className="text-gray-400 shrink-0" />
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <p className="text-sm text-[#0D1B2A]">{child.name_en}</p>
                       <p className="text-xs text-gray-400">/{child.slug}</p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="w-64 hidden md:flex items-center gap-1.5">
+                      <span className="font-mono text-xs text-gray-400 truncate">{child.id}</span>
+                      <button onClick={() => copyId(child.id)} className="shrink-0 text-gray-300 hover:text-gray-500 transition-colors" title="Kopyala">
+                        {copiedId === child.id ? <CheckCircle size={13} className="text-green-500" /> : <Copy size={13} />}
+                      </button>
+                    </div>
+                    <div className="flex gap-2 w-28 justify-end">
                       <button onClick={() => openEdit(child)} className="flex items-center gap-1 text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg">
                         <Edit size={12} /> Düzenle
                       </button>
