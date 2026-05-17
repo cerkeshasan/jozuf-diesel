@@ -317,7 +317,7 @@ export default function AdminCategoriesPage() {
             />
             <span className="w-5" />
             <span className="flex-1">Kategori</span>
-            <span className="w-64 hidden md:block">ID</span>
+            <span className="hidden md:block">ID</span>
             <span className="w-28 text-right">İşlem</span>
           </div>
 
@@ -336,16 +336,14 @@ export default function AdminCategoriesPage() {
                     <p className="font-semibold text-sm text-[#0D1B2A]">{cat.name_en}</p>
                     <p className="text-xs text-gray-400">/{cat.slug} · {cat.product_count} ürün</p>
                   </div>
-                  <div className="w-64 hidden md:flex items-center gap-1.5">
-                    <span className="font-mono text-xs text-gray-400 truncate">{cat.id}</span>
-                    <button
-                      onClick={() => copyId(cat.id)}
-                      className="shrink-0 text-gray-300 hover:text-gray-500 transition-colors"
-                      title="Kopyala"
-                    >
-                      {copiedId === cat.id ? <CheckCircle size={13} className="text-green-500" /> : <Copy size={13} />}
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => copyId(cat.id)}
+                    className="hidden md:flex items-center gap-2 font-mono text-xs text-gray-400 hover:text-[#C0202A] hover:bg-gray-100 px-2 py-1 rounded-lg transition-colors"
+                    title="Tıkla: ID kopyala"
+                  >
+                    <span>{cat.id}</span>
+                    {copiedId === cat.id ? <CheckCircle size={13} className="text-green-500 shrink-0" /> : <Copy size={13} className="shrink-0" />}
+                  </button>
                   <div className="flex gap-2 w-28 justify-end">
                     <button onClick={() => openEdit(cat)} className="flex items-center gap-1 text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg">
                       <Edit size={12} /> Düzenle
