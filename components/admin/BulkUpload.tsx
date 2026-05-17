@@ -102,8 +102,26 @@ export default function BulkUpload({ onClose }: BulkUploadProps) {
   };
 
   const downloadTemplate = () => {
-    const headers = ["name_en", "name_tr", "name_ru", "name_ar", "slug", "sku", "oem_code", "brand", "category_id", "stock_status", "stock_quantity", "min_order_qty", "qty_step", "description_en", "description_tr", "description_ru", "description_ar", "compatible_vehicles_en", "compatible_vehicles_tr", "compatible_vehicles_ru", "compatible_vehicles_ar"];
-    const sample = ["Bosch Injector", "Bosch Enjektör", "Форсунка Bosch", "حاقن بوش", "", "SKU001", "F00VC99002", "Bosch", "", "in_stock", "10", "1", "1", "Common rail injector", "Common rail enjektör", "Форсунка common rail", "حاقن كومون ريل", "Mercedes C220 CDI|BMW 320d", "Mercedes C220 CDI|BMW 320d", "Mercedes C220 CDI|BMW 320d", ""];
+    const headers = [
+      "name_en", "name_tr", "name_ru", "name_ar",
+      "slug", "sku", "oem_code", "brand", "category_id",
+      "stock_status", "stock_quantity", "min_order_qty", "qty_step",
+      "is_active", "is_featured",
+      "description_en", "description_tr", "description_ru", "description_ar",
+      "compatible_vehicles_en", "compatible_vehicles_tr", "compatible_vehicles_ru", "compatible_vehicles_ar",
+      "specs_en", "specs_tr", "specs_ru", "specs_ar",
+      "images",
+    ];
+    const sample = [
+      "Bosch Injector", "Bosch Enjektör", "Форсунка Bosch", "حاقن بوش",
+      "", "SKU001", "F00VC99002", "Bosch", "",
+      "in_stock", "10", "1", "1",
+      "true", "false",
+      "Common rail injector", "Common rail enjektör", "Форсунка common rail", "حاقن كومون ريل",
+      "Mercedes C220 CDI|BMW 320d", "Mercedes C220 CDI|BMW 320d", "Mercedes C220 CDI|BMW 320d", "",
+      '{"Type":"Injector","Pressure":"1800 bar"}', '{"Tip":"Enjektör","Basınç":"1800 bar"}', "", "",
+      "https://example.com/img1.jpg|https://example.com/img2.jpg",
+    ];
     // UTF-8 BOM (\uFEFF) ekleyince Excel doğru encoding ile açar
     const csv = "\uFEFF" + headers.join(",") + "\n" + sample.join(",");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });

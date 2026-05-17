@@ -24,6 +24,11 @@ interface ProductRow {
   compatible_vehicles_tr?: string;
   compatible_vehicles_ru?: string;
   compatible_vehicles_ar?: string;
+  specs_en?: string;
+  specs_tr?: string;
+  specs_ru?: string;
+  specs_ar?: string;
+  images?: string;
   is_active?: boolean | string;
   is_featured?: boolean | string;
 }
@@ -77,6 +82,16 @@ export async function POST(req: NextRequest) {
         const splitPipe = (val: unknown): string[] =>
           str(val) ? str(val).split("|").map(s => s.trim()).filter(Boolean) : [];
 
+        const parseJson = (val: unknown): Record<string, string> | null => {
+          const s = str(val);
+          if (!s) return null;
+          try { return JSON.parse(s); } catch { return null; }
+        };
+
+        const rowIsActive = row.is_active !== undefined
+          ? (row.is_active === true || str(row.is_active) === "true")
+          : is_active;
+
         const payload = {
           name_en: str(row.name_en) || "",
           name_tr: str(row.name_tr) || "",
@@ -99,9 +114,13 @@ export async function POST(req: NextRequest) {
           compatible_vehicles_tr: splitPipe(row.compatible_vehicles_tr),
           compatible_vehicles_ru: splitPipe(row.compatible_vehicles_ru),
           compatible_vehicles_ar: splitPipe(row.compatible_vehicles_ar),
-          is_active: is_active,
-          is_featured: row.is_featured === true || str(row.is_featured) === "true" ? true : false,
-          images: [],
+          specs_en: parseJson(row.specs_en),
+          specs_tr: parseJson(row.specs_tr),
+          specs_ru: parseJson(row.specs_ru),
+          specs_ar: parseJson(row.specs_ar),
+          images: splitPipe(row.images),
+          is_active: rowIsActive,
+          is_featured: row.is_featured === true || str(row.is_featured) === "true",
         };
 
         if (payload.sku) {

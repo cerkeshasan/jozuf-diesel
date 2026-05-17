@@ -29,10 +29,11 @@ export default function ExportProductsButton() {
         "name_en", "name_tr", "name_ru", "name_ar",
         "slug", "sku", "oem_code", "brand",
         "stock_status", "stock_quantity", "min_order_qty", "qty_step",
-        "description_en", "description_tr", "description_ru", "description_ar",
-        "compatible_vehicles_en", "compatible_vehicles_tr",
-        "compatible_vehicles_ru", "compatible_vehicles_ar",
         "is_active", "is_featured",
+        "description_en", "description_tr", "description_ru", "description_ar",
+        "compatible_vehicles_en", "compatible_vehicles_tr", "compatible_vehicles_ru", "compatible_vehicles_ar",
+        "specs_en", "specs_tr", "specs_ru", "specs_ar",
+        "images",
       ];
 
       for (const [catName, rows] of Object.entries(groups)) {
@@ -42,6 +43,8 @@ export default function ExportProductsButton() {
             const val = p[col];
             if (Array.isArray(val)) {
               row[col] = val.join("|");
+            } else if (val != null && typeof val === "object") {
+              row[col] = JSON.stringify(val);
             } else if (val == null) {
               row[col] = "";
             } else {
