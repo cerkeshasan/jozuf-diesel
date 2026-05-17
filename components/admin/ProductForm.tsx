@@ -67,37 +67,45 @@ export default function ProductForm({ categories, product, isEdit = false }: Pro
     }));
   };
 
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+
   const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
 
     setUploading(true);
     setError("");
+    setUploadProgress({ done: 0, total: files.length });
 
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("bucket", "products");
-
-    try {
-      const res = await adminFetch("/api/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Yükleme başarısız.");
-        setUploading(false);
-        return;
+    const urls: string[] = [];
+    for (const file of files) {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("bucket", "products");
+      try {
+        const res = await adminFetch("/api/upload", { method: "POST", body: fd });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || "Yükleme başarısız.");
+        } else {
+          urls.push(data.url);
+        }
+      } catch {
+        setError("Yükleme sırasında bağlantı hatası.");
       }
-      // Append URL to images textarea
+      setUploadProgress((p) => p ? { ...p, done: p.done + 1 } : null);
+    }
+
+    if (urls.length) {
       setForm((f) => ({
         ...f,
-        images: f.images ? `${f.images}\n${data.url}` : data.url,
+        images: f.images ? `${f.images}\n${urls.join("\n")}` : urls.join("\n"),
       }));
-    } catch {
-      setError("Yükleme sırasında bağlantı hatası.");
-    } finally {
-      setUploading(false);
-      // Reset file input
-      if (fileInputRef.current) fileInputRef.current.value = "";
     }
+
+    setUploading(false);
+    setUploadProgress(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -388,6 +396,7 @@ export default function ProductForm({ categories, product, isEdit = false }: Pro
             ref={fileInputRef}
             type="file"
             accept="image/*"
+            multiple
             className="hidden"
             onChange={handleUploadImage}
           />
@@ -397,10 +406,10 @@ export default function ProductForm({ categories, product, isEdit = false }: Pro
             disabled={uploading}
             className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-[#C0202A] hover:text-[#C0202A] transition-colors disabled:opacity-50"
           >
-            {uploading ? (
-              <><Loader2 size={16} className="animate-spin" /> Yükleniyor...</>
+            {uploading && uploadProgress ? (
+              <><Loader2 size={16} className="animate-spin" /> {uploadProgress.done}/{uploadProgress.total} yükleniyor...</>
             ) : (
-              <><Upload size={16} /> Görsel Yükle (max 5MB)</>
+              <><Upload size={16} /> Görsel Yükle — Toplu seçim yapılabilir</>
             )}
           </button>
         </div>
