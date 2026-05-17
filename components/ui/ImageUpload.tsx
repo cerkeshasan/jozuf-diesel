@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { Upload, X, Loader2 } from "lucide-react";
+import { adminFetch } from "@/lib/admin-fetch";
 
 interface ImageUploadProps {
   value?: string;
@@ -35,7 +36,7 @@ export default function ImageUpload({ value, onChange, bucket = "products", labe
       const formData = new FormData();
       formData.append("file", file);
       formData.append("bucket", bucket);
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const res = await adminFetch("/api/upload", { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Yükleme başarısız.");
