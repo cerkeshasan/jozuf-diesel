@@ -4,6 +4,7 @@ import { Plus, Edit, Search } from "lucide-react";
 import Badge from "@/components/ui/Badge";
 import DeleteProductButton from "@/components/admin/DeleteProductButton";
 import BulkUploadTrigger from "@/components/admin/BulkUploadTrigger";
+import ExportProductsButton from "@/components/admin/ExportProductsButton";
 
 interface PageProps {
   searchParams: Promise<{ q?: string; page?: string }>;
@@ -45,6 +46,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
           <p className="text-gray-500 text-sm">{count || 0} ürün</p>
         </div>
         <div className="flex items-center gap-2">
+          <ExportProductsButton />
           <BulkUploadTrigger />
           <Link
             href="/admin/urunler/yeni"
