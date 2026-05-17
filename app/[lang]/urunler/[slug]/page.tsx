@@ -46,6 +46,10 @@ export default async function ProductDetailPage({ params }: PageProps) {
     .limit(4);
 
   const specs = product[`specs_${lang}`] || product.specs_en;
+  const compatibleVehicles: string[] =
+    product[`compatible_vehicles_${lang}`]?.length
+      ? product[`compatible_vehicles_${lang}`]
+      : product.compatible_vehicles || [];
   const name = getProductName(product, lang);
   const description = product[`description_${lang}`] || product.description_en;
 
@@ -69,7 +73,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <nav className="flex items-center gap-2 text-sm text-gray-400 flex-wrap">
-            <Link href={`/${lang}`} className="hover:text-[#C0202A] transition-colors">Home</Link>
+            <Link href={`/${lang}`} className="hover:text-[#C0202A] transition-colors">{t.nav.home}</Link>
             <span>/</span>
             <Link href={`/${lang}/urunler`} className="hover:text-[#C0202A] transition-colors">{t.nav.products}</Link>
             {product.categories && (
@@ -101,7 +105,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 {stockLabel[product.stock_status as keyof typeof stockLabel]}
               </Badge>
               {product.stock_status === "in_stock" && product.stock_quantity > 0 && (
-                <span className="text-sm text-gray-500">({product.stock_quantity} adet)</span>
+                <span className="text-sm text-gray-500">({product.stock_quantity} {t.product.pieces})</span>
               )}
               {product.sku && (
                 <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-lg font-mono">
@@ -147,11 +151,11 @@ export default async function ProductDetailPage({ params }: PageProps) {
             )}
 
             {/* Compatible vehicles */}
-            {product.compatible_vehicles?.length > 0 && (
+            {compatibleVehicles.length > 0 && (
               <div className="mb-6">
                 <p className="text-sm font-medium text-gray-500 mb-2">{t.product.compatible}:</p>
                 <div className="flex flex-wrap gap-2">
-                  {(product.compatible_vehicles as string[]).map((v, i) => (
+                  {compatibleVehicles.map((v, i) => (
                     <span key={i} className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs">
                       {v}
                     </span>
@@ -196,7 +200,9 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 </tbody>
               </table>
             ) : (
-              <p className="text-gray-400 text-sm">Teknik özellik girilmemiş.</p>
+              <p className="text-gray-400 text-sm">
+                {lang === "tr" ? "Teknik özellik girilmemiş." : lang === "ru" ? "Нет данных." : lang === "ar" ? "لا توجد مواصفات." : "No specifications available."}
+              </p>
             )}
           </div>
         </div>

@@ -44,6 +44,10 @@ export type Product = {
   is_active: boolean;
   images: string[];
   compatible_vehicles: string[];
+  compatible_vehicles_en: string[];
+  compatible_vehicles_tr: string[];
+  compatible_vehicles_ru: string[];
+  compatible_vehicles_ar: string[];
   rating: number;
   review_count: number;
   view_count: number;

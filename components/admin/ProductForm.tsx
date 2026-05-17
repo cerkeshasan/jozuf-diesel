@@ -34,6 +34,14 @@ export default function ProductForm({ categories, product, isEdit = false }: Pro
     description_tr: product?.description_tr || "",
     description_ru: product?.description_ru || "",
     description_ar: product?.description_ar || "",
+    compatible_vehicles_en: (product?.compatible_vehicles_en || []).join("\n"),
+    compatible_vehicles_tr: (product?.compatible_vehicles_tr || []).join("\n"),
+    compatible_vehicles_ru: (product?.compatible_vehicles_ru || []).join("\n"),
+    compatible_vehicles_ar: (product?.compatible_vehicles_ar || []).join("\n"),
+    specs_en: JSON.stringify(product?.specs_en || {}, null, 2),
+    specs_tr: JSON.stringify(product?.specs_tr || {}, null, 2),
+    specs_ru: JSON.stringify(product?.specs_ru || {}, null, 2),
+    specs_ar: JSON.stringify(product?.specs_ar || {}, null, 2),
     slug: product?.slug || "",
     category_id: product?.category_id || "",
     brand: product?.brand || "",
@@ -46,8 +54,6 @@ export default function ProductForm({ categories, product, isEdit = false }: Pro
     is_featured: product?.is_featured || false,
     is_active: product?.is_active !== undefined ? product.is_active : true,
     images: (product?.images || []).join("\n"),
-    compatible_vehicles: (product?.compatible_vehicles || []).join("\n"),
-    specs_en: JSON.stringify(product?.specs_en || {}, null, 2),
   });
 
   const [variants, setVariants] = useState<VariantGroup[]>(product?.variants || []);
@@ -104,21 +110,42 @@ export default function ProductForm({ categories, product, isEdit = false }: Pro
 
     setLoading(true);
 
-    let specsEn = {};
-    try { specsEn = JSON.parse(form.specs_en || "{}"); } catch {
-      setError("Teknik özellikler geçerli JSON formatında değil.");
-      setLoading(false);
-      return;
+    const specsData: Record<string, Record<string, string>> = {};
+    for (const lang of ["en", "tr", "ru", "ar"] as const) {
+      try {
+        specsData[lang] = JSON.parse(form[`specs_${lang}`] || "{}");
+      } catch {
+        setError(`${lang.toUpperCase()} teknik özellikler geçerli JSON formatında değil.`);
+        setLoading(false);
+        return;
+      }
     }
 
+    const {
+      compatible_vehicles_en: cv_en,
+      compatible_vehicles_tr: cv_tr,
+      compatible_vehicles_ru: cv_ru,
+      compatible_vehicles_ar: cv_ar,
+      specs_en: _se, specs_tr: _st, specs_ru: _sr, specs_ar: _sa,
+      images: imagesStr,
+      ...restForm
+    } = form;
+
     const payload = {
-      ...form,
-      images: form.images.split("\n").map((s) => s.trim()).filter(Boolean),
-      compatible_vehicles: form.compatible_vehicles.split("\n").map((s) => s.trim()).filter(Boolean),
+      ...restForm,
+      images: imagesStr.split("\n").map((s) => s.trim()).filter(Boolean),
+      compatible_vehicles: [],
+      compatible_vehicles_en: cv_en.split("\n").map((s) => s.trim()).filter(Boolean),
+      compatible_vehicles_tr: cv_tr.split("\n").map((s) => s.trim()).filter(Boolean),
+      compatible_vehicles_ru: cv_ru.split("\n").map((s) => s.trim()).filter(Boolean),
+      compatible_vehicles_ar: cv_ar.split("\n").map((s) => s.trim()).filter(Boolean),
       stock_quantity: Number(form.stock_quantity),
       min_order_qty: Number(form.min_order_qty) || 1,
       qty_step: Number(form.qty_step) || 1,
-      specs_en: specsEn,
+      specs_en: specsData.en,
+      specs_tr: specsData.tr,
+      specs_ru: specsData.ru,
+      specs_ar: specsData.ar,
       category_id: form.category_id || null,
       variants: variants.filter(v => v.label_en && v.options.length > 0),
     };
@@ -192,6 +219,28 @@ export default function ProductForm({ categories, product, isEdit = false }: Pro
               value={form[`description_${activeTab}`]}
               onChange={(e) => setForm({ ...form, [`description_${activeTab}`]: e.target.value })}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C0202A] resize-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Uyumlu Araçlar ({activeTab.toUpperCase()})</label>
+            <p className="text-xs text-gray-400 mb-1">Her satıra bir araç girin</p>
+            <textarea
+              rows={3}
+              value={form[`compatible_vehicles_${activeTab}`]}
+              onChange={(e) => setForm({ ...form, [`compatible_vehicles_${activeTab}`]: e.target.value })}
+              placeholder={activeTab === "tr" ? "Mercedes C220 CDI 2015\nBMW 320d 2016" : activeTab === "ru" ? "Mercedes C220 CDI 2015\nBMW 320d 2016" : "Mercedes C220 CDI 2015\nBMW 320d 2016"}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C0202A] resize-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Teknik Özellikler ({activeTab.toUpperCase()}) — JSON</label>
+            <p className="text-xs text-gray-400 mb-1">Anahtar-değer çifti formatında JSON</p>
+            <textarea
+              rows={6}
+              value={form[`specs_${activeTab}`]}
+              onChange={(e) => setForm({ ...form, [`specs_${activeTab}`]: e.target.value })}
+              placeholder={'{\n  "Type": "Straight Reducer",\n  "Material": "Steel"\n}'}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#C0202A] resize-none"
             />
           </div>
         </div>
@@ -382,19 +431,6 @@ export default function ProductForm({ categories, product, isEdit = false }: Pro
         />
       </div>
 
-      {/* Compatible vehicles */}
-      <div className="bg-white rounded-2xl shadow-sm p-6">
-        <h2 className="font-oswald font-semibold text-[#0D1B2A] text-lg mb-4">Uyumlu Araçlar</h2>
-        <p className="text-xs text-gray-400 mb-2">Her satıra bir araç girin</p>
-        <textarea
-          rows={4}
-          value={form.compatible_vehicles}
-          onChange={(e) => setForm({ ...form, compatible_vehicles: e.target.value })}
-          placeholder={"Mercedes C220 CDI 2015\nBMW 320d 2016"}
-          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C0202A] resize-none"
-        />
-      </div>
-
       {/* Variants */}
       <div className="bg-white rounded-2xl shadow-sm p-6">
         <div className="flex items-center justify-between mb-4">
@@ -505,19 +541,6 @@ export default function ProductForm({ categories, product, isEdit = false }: Pro
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Specs */}
-      <div className="bg-white rounded-2xl shadow-sm p-6">
-        <h2 className="font-oswald font-semibold text-[#0D1B2A] text-lg mb-1">Teknik Özellikler (JSON)</h2>
-        <p className="text-xs text-gray-400 mb-3">Anahtar-değer çifti formatında JSON giriniz</p>
-        <textarea
-          rows={6}
-          value={form.specs_en}
-          onChange={(e) => setForm({ ...form, specs_en: e.target.value })}
-          placeholder={'{\n  "OEM No": "F00VC99002",\n  "Sistem": "Common Rail",\n  "Basınç": "1800 bar"\n}'}
-          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#C0202A] resize-none"
-        />
       </div>
 
       {error && (
