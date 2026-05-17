@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase";
 import { requireAuth } from "@/lib/auth-server";
 
-const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "gif"];
-const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "gif", "svg", "ico"];
+const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml", "image/x-icon", "image/vnd.microsoft.icon"];
 const ALLOWED_BUCKETS = ["products", "categories", "media"];
 
 export async function POST(req: NextRequest) {

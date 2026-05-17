@@ -11,8 +11,8 @@ interface ImageUploadProps {
   label?: string;
 }
 
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml", "image/x-icon", "image/vnd.microsoft.icon"];
+const MAX_SIZE = 5 * 1024 * 1024;
 
 export default function ImageUpload({ value, onChange, bucket = "products", label = "Görsel Yükle" }: ImageUploadProps) {
   const [loading, setLoading] = useState(false);
@@ -23,7 +23,7 @@ export default function ImageUpload({ value, onChange, bucket = "products", labe
   const handleFile = async (file: File) => {
     setError("");
     if (!ALLOWED_TYPES.includes(file.type)) {
-      setError("Sadece JPG, PNG, WebP veya GIF yükleyebilirsiniz.");
+      setError("Sadece JPG, PNG, WebP, GIF veya SVG yükleyebilirsiniz.");
       return;
     }
     if (file.size > MAX_SIZE) {
@@ -107,7 +107,7 @@ export default function ImageUpload({ value, onChange, bucket = "products", labe
             <Upload size={28} className="text-gray-400 mb-2" />
           )}
           <p className="text-sm text-gray-500 font-medium">{loading ? "Yükleniyor..." : label}</p>
-          <p className="text-xs text-gray-400 mt-1">JPG, PNG, WebP — maks. 5MB</p>
+          <p className="text-xs text-gray-400 mt-1">JPG, PNG, WebP, SVG — maks. 5MB</p>
         </div>
       )}
 
@@ -116,7 +116,7 @@ export default function ImageUpload({ value, onChange, bucket = "products", labe
       <input
         ref={inputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif"
+        accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml,image/x-icon,.svg,.ico"
         onChange={handleInputChange}
         className="hidden"
       />
