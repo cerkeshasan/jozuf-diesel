@@ -306,6 +306,7 @@ export default function AdminCategoriesPage() {
             <p>Henüz kategori yok</p>
           </div>
         ) : (
+          <>
           {/* Table header */}
           <div className="flex items-center gap-4 px-6 py-3 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
             <input
@@ -386,6 +387,7 @@ export default function AdminCategoriesPage() {
               </div>
             ))}
           </div>
+          </>
         )}
       </div>
     </div>
