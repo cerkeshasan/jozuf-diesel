@@ -20,6 +20,10 @@ interface ProductRow {
   description_tr?: string;
   description_ru?: string;
   description_ar?: string;
+  compatible_vehicles_en?: string;
+  compatible_vehicles_tr?: string;
+  compatible_vehicles_ru?: string;
+  compatible_vehicles_ar?: string;
   is_active?: boolean | string;
   is_featured?: boolean | string;
 }
@@ -70,6 +74,9 @@ export async function POST(req: NextRequest) {
         const validStatuses = ["in_stock", "out_of_stock", "on_order"];
         const stockStatus = validStatuses.includes(str(row.stock_status)) ? str(row.stock_status) : "in_stock";
 
+        const splitPipe = (val: unknown): string[] =>
+          str(val) ? str(val).split("|").map(s => s.trim()).filter(Boolean) : [];
+
         const payload = {
           name_en: str(row.name_en) || "",
           name_tr: str(row.name_tr) || "",
@@ -88,6 +95,10 @@ export async function POST(req: NextRequest) {
           description_tr: strOrNull(row.description_tr),
           description_ru: strOrNull(row.description_ru),
           description_ar: strOrNull(row.description_ar),
+          compatible_vehicles_en: splitPipe(row.compatible_vehicles_en),
+          compatible_vehicles_tr: splitPipe(row.compatible_vehicles_tr),
+          compatible_vehicles_ru: splitPipe(row.compatible_vehicles_ru),
+          compatible_vehicles_ar: splitPipe(row.compatible_vehicles_ar),
           is_active: is_active,
           is_featured: row.is_featured === true || str(row.is_featured) === "true" ? true : false,
           images: [],
