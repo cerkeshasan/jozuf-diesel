@@ -105,7 +105,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 {stockLabel[product.stock_status as keyof typeof stockLabel]}
               </Badge>
               {product.stock_status === "in_stock" && product.stock_quantity > 0 && (
-                <span className="text-sm text-gray-500">({product.stock_quantity} {t.product.pieces})</span>
+                <span className="text-sm text-gray-500">({product.stock_quantity} {t.cart.pieces})</span>
               )}
               {product.sku && (
                 <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-lg font-mono">
