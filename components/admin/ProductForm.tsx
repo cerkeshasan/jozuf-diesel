@@ -7,7 +7,6 @@ import { adminFetch } from "@/lib/admin-fetch";
 import Image from "next/image";
 import type { Category, Product, VariantGroup } from "@/lib/supabase";
 import Button from "@/components/ui/Button";
-import TagInput from "@/components/ui/TagInput";
 
 interface ProductFormProps {
   categories: Category[];
@@ -110,43 +109,49 @@ export default function ProductForm({ categories, product, isEdit = false }: Pro
 
     setLoading(true);
 
-    const specsData: Record<string, Record<string, string>> = {};
-    for (const lang of ["en", "tr", "ru", "ar"] as const) {
-      try {
-        specsData[lang] = JSON.parse(form[`specs_${lang}`] || "{}");
-      } catch {
-        setError(`${lang.toUpperCase()} teknik özellikler geçerli JSON formatında değil.`);
-        setLoading(false);
-        return;
-      }
-    }
+    const parseSpecs = (raw: string): Record<string, string> => {
+      try { return JSON.parse(raw || "{}"); } catch { return null as unknown as Record<string, string>; }
+    };
+    const specsEn = parseSpecs(form.specs_en);
+    const specsTr = parseSpecs(form.specs_tr);
+    const specsRu = parseSpecs(form.specs_ru);
+    const specsAr = parseSpecs(form.specs_ar);
 
-    const {
-      compatible_vehicles_en: cv_en,
-      compatible_vehicles_tr: cv_tr,
-      compatible_vehicles_ru: cv_ru,
-      compatible_vehicles_ar: cv_ar,
-      specs_en: _se, specs_tr: _st, specs_ru: _sr, specs_ar: _sa,
-      images: imagesStr,
-      ...restForm
-    } = form;
+    if (!specsEn) { setError("EN teknik özellikler geçerli JSON formatında değil."); setLoading(false); return; }
+    if (!specsTr) { setError("TR teknik özellikler geçerli JSON formatında değil."); setLoading(false); return; }
+    if (!specsRu) { setError("RU teknik özellikler geçerli JSON formatında değil."); setLoading(false); return; }
+    if (!specsAr) { setError("AR teknik özellikler geçerli JSON formatında değil."); setLoading(false); return; }
 
     const payload = {
-      ...restForm,
-      images: imagesStr.split("\n").map((s) => s.trim()).filter(Boolean),
-      compatible_vehicles: [],
-      compatible_vehicles_en: cv_en.split("\n").map((s) => s.trim()).filter(Boolean),
-      compatible_vehicles_tr: cv_tr.split("\n").map((s) => s.trim()).filter(Boolean),
-      compatible_vehicles_ru: cv_ru.split("\n").map((s) => s.trim()).filter(Boolean),
-      compatible_vehicles_ar: cv_ar.split("\n").map((s) => s.trim()).filter(Boolean),
+      name_en: form.name_en,
+      name_tr: form.name_tr,
+      name_ru: form.name_ru,
+      name_ar: form.name_ar,
+      description_en: form.description_en,
+      description_tr: form.description_tr,
+      description_ru: form.description_ru,
+      description_ar: form.description_ar,
+      slug: form.slug,
+      category_id: form.category_id || null,
+      brand: form.brand,
+      sku: form.sku,
+      oem_code: form.oem_code,
+      stock_status: form.stock_status,
       stock_quantity: Number(form.stock_quantity),
       min_order_qty: Number(form.min_order_qty) || 1,
       qty_step: Number(form.qty_step) || 1,
-      specs_en: specsData.en,
-      specs_tr: specsData.tr,
-      specs_ru: specsData.ru,
-      specs_ar: specsData.ar,
-      category_id: form.category_id || null,
+      is_featured: form.is_featured,
+      is_active: form.is_active,
+      images: form.images.split("\n").map((s) => s.trim()).filter(Boolean),
+      compatible_vehicles: [] as string[],
+      compatible_vehicles_en: form.compatible_vehicles_en.split("\n").map((s) => s.trim()).filter(Boolean),
+      compatible_vehicles_tr: form.compatible_vehicles_tr.split("\n").map((s) => s.trim()).filter(Boolean),
+      compatible_vehicles_ru: form.compatible_vehicles_ru.split("\n").map((s) => s.trim()).filter(Boolean),
+      compatible_vehicles_ar: form.compatible_vehicles_ar.split("\n").map((s) => s.trim()).filter(Boolean),
+      specs_en: specsEn,
+      specs_tr: specsTr,
+      specs_ru: specsRu,
+      specs_ar: specsAr,
       variants: variants.filter(v => v.label_en && v.options.length > 0),
     };
 
