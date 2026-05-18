@@ -1,5 +1,7 @@
+export const dynamic = "force-dynamic";
+
 import { createServiceClient } from "@/lib/supabase";
-import { Package, FolderOpen, ShoppingBag, MessageCircle, Eye, TrendingUp } from "lucide-react";
+import { Package, FolderOpen, ShoppingBag, Eye } from "lucide-react";
 import Link from "next/link";
 import Badge from "@/components/ui/Badge";
 
@@ -12,19 +14,23 @@ export default async function DashboardPage() {
     { count: pendingOrders },
     { data: recentOrders },
     { data: topProducts },
+    { data: viewData },
   ] = await Promise.all([
-    supabase.from("products").select("*", { count: "exact", head: true }).eq("is_active", true),
+    supabase.from("products").select("*", { count: "exact", head: true }),
     supabase.from("categories").select("*", { count: "exact", head: true }).eq("is_active", true),
     supabase.from("orders").select("*", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(5),
-    supabase.from("products").select("id, name_en, brand, view_count, stock_status").order("view_count", { ascending: false }).limit(5),
+    supabase.from("products").select("id, name_en, brand, view_count").order("view_count", { ascending: false }).limit(5),
+    supabase.from("products").select("view_count"),
   ]);
 
+  const totalViews = (viewData || []).reduce((sum, p) => sum + (p.view_count || 0), 0);
+
   const stats = [
-    { label: "Toplam Ürün", value: totalProducts || 0, icon: Package, color: "bg-blue-500", change: "+12" },
-    { label: "Kategoriler", value: totalCategories || 0, icon: FolderOpen, color: "bg-purple-500", change: "+2" },
-    { label: "Bekleyen Siparişler", value: pendingOrders || 0, icon: ShoppingBag, color: "bg-yellow-500", change: "+5" },
-    { label: "Toplam Görüntüleme", value: "—", icon: Eye, color: "bg-green-500", change: "+234" },
+    { label: "Toplam Ürün", value: totalProducts ?? 0, icon: Package, color: "bg-blue-500" },
+    { label: "Kategoriler", value: totalCategories ?? 0, icon: FolderOpen, color: "bg-purple-500" },
+    { label: "Bekleyen Siparişler", value: pendingOrders ?? 0, icon: ShoppingBag, color: "bg-yellow-500" },
+    { label: "Toplam Görüntüleme", value: totalViews, icon: Eye, color: "bg-green-500" },
   ];
 
   const statusVariant = {
@@ -53,9 +59,6 @@ export default async function DashboardPage() {
               <div className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center`}>
                 <stat.icon size={24} className="text-white" />
               </div>
-              <span className="text-green-600 text-xs font-semibold bg-green-50 px-2 py-1 rounded-full">
-                {stat.change}
-              </span>
             </div>
             <div className="font-oswald text-3xl font-bold text-[#0D1B2A]">{stat.value}</div>
             <div className="text-sm text-gray-500 mt-1">{stat.label}</div>
@@ -82,7 +85,7 @@ export default async function DashboardPage() {
                 <div>
                   <p className="font-semibold text-sm text-[#0D1B2A]">#{order.order_number}</p>
                   <p className="text-xs text-gray-400">
-                    {new Date(order.created_at).toLocaleDateString("tr-TR")} · {order.lang.toUpperCase()}
+                    {new Date(order.created_at).toLocaleDateString("tr-TR")} · {order.lang?.toUpperCase()}
                   </p>
                 </div>
                 <Badge variant={statusVariant[order.status as keyof typeof statusVariant]}>
