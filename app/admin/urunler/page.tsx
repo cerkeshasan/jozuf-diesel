@@ -107,6 +107,9 @@ export default function AdminProductsPage() {
   const toggleAll = () =>
     setSelected(selected.size === paged.length ? new Set() : new Set(paged.map((p) => p.id)));
 
+  const selectAllProducts = () =>
+    setSelected(selected.size === sorted.length ? new Set() : new Set(sorted.map((p) => p.id)));
+
   const handleBulkDelete = async () => {
     if (!confirm(`${selected.size} ürünü silmek istediğinizden emin misiniz?`)) return;
     setBulkLoading(true);
@@ -223,6 +226,12 @@ export default function AdminProductsPage() {
             Temizle
           </button>
         )}
+        <button
+          onClick={selectAllProducts}
+          className="px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 whitespace-nowrap"
+        >
+          {selected.size === sorted.length && sorted.length > 0 ? "Seçimi Kaldır" : `Tümünü Seç (${sorted.length})`}
+        </button>
       </div>
 
       {/* Table */}
