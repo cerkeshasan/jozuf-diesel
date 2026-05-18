@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Upload, X, AlertCircle, Loader2, Plus, Trash2 } from "lucide-react";
+import { Save, Upload, X, AlertCircle, Loader2, Plus, Trash2, Link as LinkIcon } from "lucide-react";
 import { adminFetch } from "@/lib/admin-fetch";
 import Image from "next/image";
 import type { Category, Product, VariantGroup } from "@/lib/supabase";
@@ -68,6 +68,7 @@ export default function ProductForm({ categories, product, isEdit = false }: Pro
   };
 
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+  const [urlInput, setUrlInput] = useState("");
 
   const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -390,16 +391,9 @@ export default function ProductForm({ categories, product, isEdit = false }: Pro
       <div className="bg-white rounded-2xl shadow-sm p-6">
         <h2 className="font-oswald font-semibold text-[#0D1B2A] text-lg mb-4">Görseller</h2>
 
-        {/* Upload button */}
-        <div className="mb-4">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={handleUploadImage}
-          />
+        {/* Two action buttons */}
+        <div className="flex gap-2 mb-4 flex-wrap">
+          <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleUploadImage} />
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
@@ -409,17 +403,55 @@ export default function ProductForm({ categories, product, isEdit = false }: Pro
             {uploading && uploadProgress ? (
               <><Loader2 size={16} className="animate-spin" /> {uploadProgress.done}/{uploadProgress.total} yükleniyor...</>
             ) : (
-              <><Upload size={16} /> Görsel Yükle — Toplu seçim yapılabilir</>
+              <><Upload size={16} /> Dosyadan Yükle</>
             )}
           </button>
         </div>
 
-        {/* Image preview */}
+        {/* URL paste input */}
+        <div className="flex gap-2 mb-4">
+          <div className="relative flex-1">
+            <LinkIcon size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="url"
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const url = urlInput.trim();
+                  if (!url) return;
+                  setForm(f => ({ ...f, images: f.images ? `${f.images}\n${url}` : url }));
+                  setUrlInput("");
+                }
+              }}
+              placeholder="Cloudinary, Drive veya herhangi bir görsel URL yapıştır..."
+              className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#C0202A]"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const url = urlInput.trim();
+              if (!url) return;
+              setForm(f => ({ ...f, images: f.images ? `${f.images}\n${url}` : url }));
+              setUrlInput("");
+            }}
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-[#0D1B2A] text-white rounded-xl text-sm font-medium hover:bg-[#1a2f45] transition-colors"
+          >
+            <Plus size={15} /> Ekle
+          </button>
+        </div>
+
+        {/* Image previews */}
         {imageList.length > 0 && (
-          <div className="flex gap-2 flex-wrap mb-4">
+          <div className="flex gap-2 flex-wrap mb-3">
             {imageList.map((url, i) => (
-              <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 group">
-                <Image src={url} alt={`img ${i + 1}`} fill className="object-cover" sizes="64px" />
+              <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200 group bg-gray-50">
+                {i === 0 && (
+                  <span className="absolute top-1 left-1 z-10 bg-[#C0202A] text-white text-[10px] px-1.5 py-0.5 rounded font-semibold leading-none">Ana</span>
+                )}
+                <Image src={url} alt={`img ${i + 1}`} fill className="object-contain p-1" sizes="80px" />
                 <button
                   type="button"
                   onClick={() => {
@@ -435,14 +467,16 @@ export default function ProductForm({ categories, product, isEdit = false }: Pro
           </div>
         )}
 
-        <p className="text-xs text-gray-400 mb-2">URL'leri satır satır girebilir veya yukarıdan dosya yükleyebilirsiniz</p>
-        <textarea
-          rows={3}
-          value={form.images}
-          onChange={(e) => setForm({ ...form, images: e.target.value })}
-          placeholder={"https://example.com/image1.jpg\nhttps://example.com/image2.jpg"}
-          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#C0202A] resize-none"
-        />
+        <details className="mt-1">
+          <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-600 select-none">Tüm URL&apos;leri düzenle</summary>
+          <textarea
+            rows={3}
+            value={form.images}
+            onChange={(e) => setForm({ ...form, images: e.target.value })}
+            placeholder={"https://res.cloudinary.com/.../gorsel.jpg\nhttps://..."}
+            className="mt-2 w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#C0202A] resize-none"
+          />
+        </details>
       </div>
 
       {/* Variants */}
