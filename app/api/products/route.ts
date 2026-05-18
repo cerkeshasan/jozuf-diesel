@@ -42,20 +42,43 @@ const ProductSchema = z.object({
   })).optional().nullable(),
 });
 
+async function isAuthenticated(req: NextRequest): Promise<boolean> {
+  const authHeader = req.headers.get("authorization");
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!token) return false;
+  const { createClient } = await import("@supabase/supabase-js");
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+  const { data: { user } } = await supabase.auth.getUser(token);
+  return !!user;
+}
+
 export async function GET(req: NextRequest) {
   const supabase = createServiceClient();
   const { searchParams } = new URL(req.url);
 
-  let query = supabase.from("products").select("*, categories(*)").eq("is_active", true);
-
   const category = searchParams.get("category");
   const featured = searchParams.get("featured");
   const brand = searchParams.get("brand");
+  const q = searchParams.get("q");
+  const all = searchParams.get("all");
   const limit = parseInt(searchParams.get("limit") || "48");
+
+  const admin = all === "true" ? await isAuthenticated(req) : false;
+
+  let query = supabase.from("products").select("*, categories(*)");
+  if (!admin) query = query.eq("is_active", true);
 
   if (category) query = query.eq("category_id", category);
   if (featured) query = query.eq("is_featured", true);
   if (brand) query = query.eq("brand", brand);
+  if (q) {
+    query = query.or(
+      `name_en.ilike.%${q}%,name_tr.ilike.%${q}%,oem_code.ilike.%${q}%,brand.ilike.%${q}%`
+    );
+  }
 
   const { data, error } = await query.order("created_at", { ascending: false }).limit(limit);
 

@@ -44,9 +44,9 @@ export default function AdminProductsPage() {
     setLoading(true);
     setSelected(new Set());
     try {
-      const params = new URLSearchParams({ limit: "1000" });
+      const params = new URLSearchParams({ limit: "1000", all: "true" });
       if (search) params.set("q", search);
-      const res = await fetch(`/api/products?${params}`);
+      const res = await adminFetch(`/api/products?${params}`);
       const data = await res.json();
       const all: Product[] = Array.isArray(data) ? data : [];
       setTotal(all.length);
