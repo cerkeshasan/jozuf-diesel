@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Plus, Edit, Trash2, Search, Loader2, CheckCircle, Eye, EyeOff } from "lucide-react";
+import { Plus, Edit, Trash2, Search, Loader2, CheckCircle, Eye, EyeOff, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import Badge from "@/components/ui/Badge";
 import BulkUploadTrigger from "@/components/admin/BulkUploadTrigger";
 import ExportProductsButton from "@/components/admin/ExportProductsButton";
@@ -11,6 +11,7 @@ import { adminFetch } from "@/lib/admin-fetch";
 interface Product {
   id: string;
   name_en: string;
+  sku: string | null;
   oem_code: string | null;
   brand: string | null;
   stock_status: "in_stock" | "out_of_stock" | "on_order";
@@ -19,6 +20,9 @@ interface Product {
   categories?: { name_en: string } | null;
 }
 
+type SortKey = "name_en" | "sku" | "oem_code" | "brand" | "category" | "stock_status" | "is_active";
+type SortDir = "asc" | "desc";
+
 const stockVariant = {
   in_stock: "success" as const,
   out_of_stock: "danger" as const,
@@ -26,6 +30,13 @@ const stockVariant = {
 };
 
 const PAGE_SIZE = 20;
+
+function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
+  if (col !== sortKey) return <ChevronsUpDown size={12} className="text-gray-300 ml-1 inline" />;
+  return sortDir === "asc"
+    ? <ChevronUp size={12} className="text-[#C0202A] ml-1 inline" />
+    : <ChevronDown size={12} className="text-[#C0202A] ml-1 inline" />;
+}
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -37,6 +48,8 @@ export default function AdminProductsPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
   const [toast, setToast] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("name_en");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
 
@@ -58,8 +71,35 @@ export default function AdminProductsPage() {
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
-  const paged = products.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const totalPages = Math.ceil(products.length / PAGE_SIZE);
+  const handleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+    setPage(1);
+  };
+
+  const sorted = [...products].sort((a, b) => {
+    let aVal = "";
+    let bVal = "";
+    if (sortKey === "category") {
+      aVal = a.categories?.name_en || "";
+      bVal = b.categories?.name_en || "";
+    } else if (sortKey === "is_active") {
+      aVal = a.is_active ? "1" : "0";
+      bVal = b.is_active ? "1" : "0";
+    } else {
+      aVal = (a[sortKey] ?? "") as string;
+      bVal = (b[sortKey] ?? "") as string;
+    }
+    const cmp = aVal.localeCompare(bVal, "tr", { sensitivity: "base" });
+    return sortDir === "asc" ? cmp : -cmp;
+  });
+
+  const paged = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
 
   const toggleSelect = (id: string) =>
     setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -102,6 +142,8 @@ export default function AdminProductsPage() {
     const res = await adminFetch(`/api/products?id=${id}`, { method: "DELETE" });
     if (res.ok) { showToast("Ürün silindi."); await fetchProducts(); }
   };
+
+  const thClass = "text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase cursor-pointer select-none hover:text-gray-800 whitespace-nowrap";
 
   return (
     <div className="space-y-6">
@@ -163,7 +205,7 @@ export default function AdminProductsPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { setSearch(q); setPage(1); } }}
-            placeholder="Ürün adı, OEM kodu, marka..."
+            placeholder="Ürün adı, OEM kodu, SKU, marka..."
             className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#C0202A]"
           />
         </div>
@@ -197,25 +239,40 @@ export default function AdminProductsPage() {
                     className="accent-[#C0202A] w-4 h-4"
                   />
                 </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Ürün</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">OEM</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Marka</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Kategori</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Stok</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Durum</th>
+                <th className={thClass} onClick={() => handleSort("name_en")}>
+                  Ürün <SortIcon col="name_en" sortKey={sortKey} sortDir={sortDir} />
+                </th>
+                <th className={thClass} onClick={() => handleSort("sku")}>
+                  SKU <SortIcon col="sku" sortKey={sortKey} sortDir={sortDir} />
+                </th>
+                <th className={thClass} onClick={() => handleSort("oem_code")}>
+                  OEM <SortIcon col="oem_code" sortKey={sortKey} sortDir={sortDir} />
+                </th>
+                <th className={thClass} onClick={() => handleSort("brand")}>
+                  Marka <SortIcon col="brand" sortKey={sortKey} sortDir={sortDir} />
+                </th>
+                <th className={thClass} onClick={() => handleSort("category")}>
+                  Kategori <SortIcon col="category" sortKey={sortKey} sortDir={sortDir} />
+                </th>
+                <th className={thClass} onClick={() => handleSort("stock_status")}>
+                  Stok <SortIcon col="stock_status" sortKey={sortKey} sortDir={sortDir} />
+                </th>
+                <th className={thClass} onClick={() => handleSort("is_active")}>
+                  Durum <SortIcon col="is_active" sortKey={sortKey} sortDir={sortDir} />
+                </th>
                 <th className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase">İşlem</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-gray-400">
+                  <td colSpan={9} className="py-12 text-center text-gray-400">
                     <Loader2 size={24} className="animate-spin mx-auto" />
                   </td>
                 </tr>
               ) : paged.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-gray-400">Ürün bulunamadı</td>
+                  <td colSpan={9} className="py-12 text-center text-gray-400">Ürün bulunamadı</td>
                 </tr>
               ) : paged.map((product) => (
                 <tr key={product.id} className={`hover:bg-gray-50 transition-colors ${selected.has(product.id) ? "bg-red-50/30" : ""}`}>
@@ -229,6 +286,9 @@ export default function AdminProductsPage() {
                   </td>
                   <td className="py-3 px-4">
                     <p className="font-medium text-sm text-[#0D1B2A] line-clamp-1">{product.name_en}</p>
+                  </td>
+                  <td className="py-3 px-4">
+                    <span className="font-mono text-xs text-gray-500">{product.sku || "-"}</span>
                   </td>
                   <td className="py-3 px-4">
                     <span className="font-mono text-xs text-[#C0202A]">{product.oem_code || "-"}</span>
