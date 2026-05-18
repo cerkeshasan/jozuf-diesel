@@ -11,6 +11,10 @@ interface ProductGalleryProps {
 
 export default function ProductGallery({ images, name }: ProductGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [hovering, setHovering] = useState(false);
+
+  const hasMultiple = images.length > 1;
+  const hoverIndex = hasMultiple ? (activeIndex + 1) % images.length : activeIndex;
 
   const prev = () => setActiveIndex((i) => (i === 0 ? images.length - 1 : i - 1));
   const next = () => setActiveIndex((i) => (i === images.length - 1 ? 0 : i + 1));
@@ -19,16 +23,31 @@ export default function ProductGallery({ images, name }: ProductGalleryProps) {
     <div>
       {/* Main Image */}
       <div className="bg-white rounded-2xl overflow-hidden shadow-sm mb-3 relative group">
-        <div className="aspect-square relative">
+        <div
+          className="aspect-square relative"
+          onMouseEnter={() => setHovering(true)}
+          onMouseLeave={() => setHovering(false)}
+        >
           {images.length > 0 && images[activeIndex] ? (
-            <Image
-              src={images[activeIndex]}
-              alt={`${name} ${activeIndex + 1}`}
-              fill
-              className="object-contain p-8 transition-opacity duration-200"
-              priority
-              sizes="(max-width: 768px) 100vw, 50vw"
-            />
+            <>
+              <Image
+                src={images[activeIndex]}
+                alt={`${name} ${activeIndex + 1}`}
+                fill
+                className={`object-contain p-8 transition-all duration-300 ${hovering && hasMultiple ? "opacity-0 scale-105" : "opacity-100 scale-100"}`}
+                priority
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
+              {hasMultiple && (
+                <Image
+                  src={images[hoverIndex]}
+                  alt={`${name} ${hoverIndex + 1}`}
+                  fill
+                  className={`object-contain p-8 transition-all duration-300 scale-105 ${hovering ? "opacity-100" : "opacity-0"}`}
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                />
+              )}
+            </>
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-200 text-8xl">
               ⚙️
