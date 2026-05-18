@@ -2,43 +2,31 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase";
 import { requireAuth } from "@/lib/auth-server";
 import sharp from "sharp";
+import path from "path";
+import fs from "fs";
 
 const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "gif", "svg", "ico"];
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml", "image/x-icon", "image/vnd.microsoft.icon"];
 const ALLOWED_BUCKETS = ["products", "categories", "media"];
 
-// SVG filigranı görselin üzerine işler — sadece ürün bucket'ında uygulanır
+const WATERMARK_PATH = path.join(process.cwd(), "public", "watermark.png");
+
 async function applyWatermark(buffer: Buffer): Promise<Buffer> {
   const img = sharp(buffer);
   const { width = 800, height = 800 } = await img.metadata();
 
-  const fontSize = Math.max(18, Math.round(Math.min(width, height) * 0.055));
-  const text = "JOZUF • DIESEL";
-  // Çapraz tekrarlayan filigran pattern
-  const patternW = Math.round(fontSize * 10);
-  const patternH = Math.round(fontSize * 4);
+  // Filigranı görselin %70'i kadar boyutlandır, ortaya yerleştir
+  const wmSize = Math.round(Math.min(width, height) * 0.70);
+  const wmBuffer = await sharp(WATERMARK_PATH)
+    .resize(wmSize, wmSize, { fit: "inside" })
+    .toBuffer();
 
-  const svg = `
-    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <pattern id="wm" x="0" y="0" width="${patternW}" height="${patternH}"
-          patternUnits="userSpaceOnUse" patternTransform="rotate(-35)">
-          <text
-            x="${patternW / 2}" y="${patternH * 0.7}"
-            font-family="Arial, Helvetica, sans-serif"
-            font-size="${fontSize}"
-            font-weight="bold"
-            fill="rgba(255,255,255,0.55)"
-            text-anchor="middle"
-            letter-spacing="2"
-          >${text}</text>
-        </pattern>
-      </defs>
-      <rect width="${width}" height="${height}" fill="url(#wm)"/>
-    </svg>`;
+  const wmMeta = await sharp(wmBuffer).metadata();
+  const left = Math.round((width - (wmMeta.width ?? wmSize)) / 2);
+  const top = Math.round((height - (wmMeta.height ?? wmSize)) / 2);
 
   return img
-    .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
+    .composite([{ input: wmBuffer, top, left, blend: "over" }])
     .webp({ quality: 88 })
     .toBuffer();
 }
