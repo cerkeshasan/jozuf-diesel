@@ -20,6 +20,8 @@ export default function ProductCard({ product, lang, t }: ProductCardProps) {
   const addItem = useCartStore((s) => s.addItem);
   const [added, setAdded] = useState(false);
   const [particles, setParticles] = useState<{ id: number; x: number; y: number }[]>([]);
+  const [hovering, setHovering] = useState(false);
+  const hasSecondImage = (product.images?.length ?? 0) > 1;
 
   const minQty = product.min_order_qty || 1;
   const step = product.qty_step || 1;
@@ -73,14 +75,28 @@ export default function ProductCard({ product, lang, t }: ProductCardProps) {
       <Link href={`/${lang}/urunler/${product.slug}`}>
         <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 border border-transparent hover:border-[#C0202A] group">
           {/* Image */}
-          <div className="aspect-square bg-gray-50 relative overflow-hidden">
+          <div
+            className="aspect-square bg-gray-50 relative overflow-hidden"
+            onMouseEnter={() => setHovering(true)}
+            onMouseLeave={() => setHovering(false)}
+          >
             {product.images?.[0] ? (
-              <Image
-                src={product.images[0]}
-                alt={getProductName(product, lang)}
-                fill
-                className="object-contain p-4 group-hover:scale-105 transition-transform duration-300"
-              />
+              <>
+                <Image
+                  src={product.images[0]}
+                  alt={getProductName(product, lang)}
+                  fill
+                  className={`object-contain p-4 transition-all duration-300 ${hovering ? "scale-105" : "scale-100"} ${hovering && hasSecondImage ? "opacity-0" : "opacity-100"}`}
+                />
+                {hasSecondImage && (
+                  <Image
+                    src={product.images[1]}
+                    alt={getProductName(product, lang)}
+                    fill
+                    className={`object-contain p-4 transition-all duration-300 scale-105 ${hovering ? "opacity-100" : "opacity-0"}`}
+                  />
+                )}
+              </>
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-300 text-5xl">
                 ⚙️
