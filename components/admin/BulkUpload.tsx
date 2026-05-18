@@ -111,8 +111,14 @@ export default function BulkUpload({ onClose }: BulkUploadProps) {
       "compatible_vehicles_en", "compatible_vehicles_tr", "compatible_vehicles_ru", "compatible_vehicles_ar",
       "specs_en", "specs_tr", "specs_ru", "specs_ar",
       "images",
+      "options_json",
     ];
-    const sample = [
+
+    const optionsSample = JSON.stringify([
+      { group_en: "Pipe Diameter", group_tr: "Boru Çapı", group_ru: "Диаметр", group_ar: "القطر", options: ["6mm", "8mm", "10mm"] },
+    ]);
+
+    const row = [
       "Bosch Injector", "Bosch Enjektör", "Форсунка Bosch", "حاقن بوش",
       "", "SKU001", "F00VC99002", "Bosch", "",
       "in_stock", "10", "1", "1",
@@ -121,9 +127,12 @@ export default function BulkUpload({ onClose }: BulkUploadProps) {
       "Mercedes C220 CDI|BMW 320d", "Mercedes C220 CDI|BMW 320d", "Mercedes C220 CDI|BMW 320d", "",
       '{"Type":"Injector","Pressure":"1800 bar"}', '{"Tip":"Enjektör","Basınç":"1800 bar"}', "", "",
       "https://example.com/img1.jpg|https://example.com/img2.jpg",
+      // options_json — CSV kuralı: dış çift tırnak, içteki çift tırnaklar ikiye katlanır
+      '"' + optionsSample.replace(/"/g, '""') + '"',
     ];
+
     // UTF-8 BOM (\uFEFF) ekleyince Excel doğru encoding ile açar
-    const csv = "\uFEFF" + headers.join(",") + "\n" + sample.join(",");
+    const csv = "\uFEFF" + headers.join(",") + "\n" + row.join(",");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

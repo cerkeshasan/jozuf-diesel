@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase";
 import { requireAuth } from "@/lib/auth-server";
 
+interface OptionGroup {
+  group_en: string;
+  group_tr?: string;
+  group_ru?: string;
+  group_ar?: string;
+  options: string[];
+}
+
 interface ProductRow {
   name_en?: string;
   name_tr?: string;
@@ -31,6 +39,7 @@ interface ProductRow {
   images?: string;
   is_active?: boolean | string;
   is_featured?: boolean | string;
+  options_json?: string;
 }
 
 function slugify(text: string): string {
@@ -92,6 +101,25 @@ export async function POST(req: NextRequest) {
           ? (row.is_active === true || str(row.is_active) === "true")
           : is_active;
 
+        type DbVariant = { label_en: string; label_tr: string; label_ru: string; label_ar: string; options: string[] };
+        const parseOptions = (val: unknown): DbVariant[] | null => {
+          const s = str(val);
+          if (!s) return null;
+          try {
+            const parsed = JSON.parse(s) as OptionGroup[];
+            if (!Array.isArray(parsed)) return null;
+            return parsed.map((g) => ({
+              label_en: String(g.group_en || ""),
+              label_tr: String(g.group_tr || ""),
+              label_ru: String(g.group_ru || ""),
+              label_ar: String(g.group_ar || ""),
+              options: Array.isArray(g.options) ? g.options.map(String) : [],
+            }));
+          } catch { return null; }
+        };
+
+        const variants = parseOptions(row.options_json);
+
         const payload = {
           name_en: str(row.name_en) || "",
           name_tr: str(row.name_tr) || "",
@@ -121,6 +149,7 @@ export async function POST(req: NextRequest) {
           images: splitPipe(row.images),
           is_active: rowIsActive,
           is_featured: row.is_featured === true || str(row.is_featured) === "true",
+          ...(variants !== null ? { variants } : {}),
         };
 
         if (payload.sku) {
