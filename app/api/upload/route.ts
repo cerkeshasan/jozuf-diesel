@@ -1,30 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase";
 import { requireAuth } from "@/lib/auth-server";
-import sharp from "sharp";
-import path from "path";
-import fs from "fs";
 
 const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "gif", "svg", "ico"];
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml", "image/x-icon", "image/vnd.microsoft.icon"];
 const ALLOWED_BUCKETS = ["products", "categories", "media"];
-
-const WATERMARK_PATH = path.join(process.cwd(), "public", "watermark.png");
-
-async function applyWatermark(buffer: Buffer): Promise<Buffer> {
-  const img = sharp(buffer);
-  const { width = 800, height = 800 } = await img.metadata();
-
-  // Watermark'ı tam görsel boyutuna ger — tüm yüzeyi eşit kaplar
-  const wmBuffer = await sharp(WATERMARK_PATH)
-    .resize(width, height, { fit: "fill" })
-    .toBuffer();
-
-  return img
-    .composite([{ input: wmBuffer, top: 0, left: 0, blend: "over" }])
-    .webp({ quality: 88 })
-    .toBuffer();
-}
 
 export async function POST(req: NextRequest) {
   const authError = await requireAuth(req);
@@ -54,27 +34,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Dosya boyutu 5MB'ı aşmamalıdır." }, { status: 400 });
   }
 
+  const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
   const bytes = await file.arrayBuffer();
-  let buffer: Buffer = Buffer.from(bytes);
-
-  // Ürün görsellerine filigran uygula (SVG/ICO hariç)
-  const canWatermark = bucket === "products" && !["svg", "ico"].includes(ext);
-  if (canWatermark) {
-    try {
-      buffer = await applyWatermark(buffer);
-    } catch {
-      // Filigran başarısız olursa orijinal görseli yükle
-    }
-  }
-
-  // Filigranlı görseller webp olarak kaydedilir
-  const finalExt = canWatermark ? "webp" : ext;
-  const finalMime = canWatermark ? "image/webp" : file.type;
-  const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${finalExt}`;
+  const buffer = Buffer.from(bytes);
 
   const { error } = await supabase.storage
     .from(bucket)
-    .upload(filename, buffer, { contentType: finalMime, upsert: false });
+    .upload(filename, buffer, { contentType: file.type, upsert: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
