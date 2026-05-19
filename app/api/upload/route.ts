@@ -15,18 +15,13 @@ async function applyWatermark(buffer: Buffer): Promise<Buffer> {
   const img = sharp(buffer);
   const { width = 800, height = 800 } = await img.metadata();
 
-  // Filigranı görselin %70'i kadar boyutlandır, ortaya yerleştir
-  const wmSize = Math.round(Math.min(width, height) * 0.70);
+  // Watermark'ı tam görsel boyutuna ger — tüm yüzeyi eşit kaplar
   const wmBuffer = await sharp(WATERMARK_PATH)
-    .resize(wmSize, wmSize, { fit: "inside" })
+    .resize(width, height, { fit: "fill" })
     .toBuffer();
 
-  const wmMeta = await sharp(wmBuffer).metadata();
-  const left = Math.round((width - (wmMeta.width ?? wmSize)) / 2);
-  const top = Math.round((height - (wmMeta.height ?? wmSize)) / 2);
-
   return img
-    .composite([{ input: wmBuffer, top, left, blend: "over" }])
+    .composite([{ input: wmBuffer, top: 0, left: 0, blend: "over" }])
     .webp({ quality: 88 })
     .toBuffer();
 }
