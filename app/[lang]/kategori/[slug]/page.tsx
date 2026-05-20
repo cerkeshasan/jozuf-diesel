@@ -32,19 +32,31 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
 
   if (!category) notFound();
 
-  // Also get sub-categories
+  // Üst kategori (varsa)
+  const { data: parentCategory } = category.parent_id
+    ? await supabase.from("categories").select("*").eq("id", category.parent_id).single()
+    : { data: null };
+
+  // Tüm aktif kategoriler (sol sidebar ağacı için)
+  const { data: allCategories } = await supabase
+    .from("categories")
+    .select("*")
+    .eq("is_active", true)
+    .order("order_index");
+
+  // Alt kategoriler (bu sayfaya ait — ürün filtresi için)
   const { data: subCategories } = await supabase
     .from("categories")
     .select("*")
     .eq("parent_id", category.id)
-    .eq("is_active", true);
+    .eq("is_active", true)
+    .order("order_index");
 
   let query = supabase
     .from("products")
     .select("*, categories(*)", { count: "exact" })
     .eq("is_active", true);
 
-  // If category has children, include products from all sub-categories too
   const allCategoryIds = [
     category.id,
     ...(subCategories || []).map(c => c.id),
@@ -59,7 +71,6 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   if (sp.stock) query = query.eq("stock_status", sp.stock);
   if (sp.brand) query = query.eq("brand", sp.brand);
 
-  // Sort
   const sortMap: Record<string, { column: string; ascending: boolean }> = {
     newest: { column: "created_at", ascending: false },
     "most-viewed": { column: "view_count", ascending: false },
@@ -71,7 +82,6 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
 
   const { data: products, count } = await query.range(offset, offset + LIMIT - 1);
 
-  // Get distinct brands for this category
   const { data: brandData } = await supabase
     .from("products")
     .select("brand")
@@ -88,17 +98,25 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
       <div className="bg-[#0D1B2A] py-12">
         <div className="max-w-7xl mx-auto px-4">
           <nav className="flex items-center gap-2 text-sm text-gray-400 mb-4 flex-wrap">
-            <Link href={`/${lang}`} className="hover:text-white transition-colors">Home</Link>
+            <Link href={`/${lang}`} className="hover:text-white transition-colors">{t.nav.home}</Link>
             <span>/</span>
             <Link href={`/${lang}/urunler`} className="hover:text-white transition-colors">{t.nav.products}</Link>
+            {parentCategory && (
+              <>
+                <span>/</span>
+                <Link href={`/${lang}/kategori/${parentCategory.slug}`} className="hover:text-white transition-colors">
+                  {getCategoryName(parentCategory, lang)}
+                </Link>
+              </>
+            )}
             <span>/</span>
             <span className="text-white">{getCategoryName(category, lang)}</span>
           </nav>
           <h1 className="font-oswald text-4xl font-bold text-white">{getCategoryName(category, lang)}</h1>
-          {(category as any)[`description_${lang}`] && (
-            <p className="text-gray-400 mt-2">{(category as any)[`description_${lang}`]}</p>
+          {(category as Record<string, string | null>)[`description_${lang}`] && (
+            <p className="text-gray-400 mt-2">{(category as Record<string, string | null>)[`description_${lang}`]}</p>
           )}
-          <p className="text-gray-500 text-sm mt-1">{count || 0} ürün</p>
+          <p className="text-gray-500 text-sm mt-1">{count || 0} {t.filters.products}</p>
         </div>
       </div>
 
@@ -107,6 +125,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
           {/* Sidebar Filters */}
           <aside className="hidden md:block w-64 shrink-0">
             <CategoryFilters
+              allCategories={allCategories || []}
               brands={uniqueBrands}
               lang={lang}
               slug={slug}
@@ -121,14 +140,15 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
           <div className="flex-1">
             {/* Sort bar */}
             <div className="flex items-center justify-between mb-6 gap-4">
-              <p className="text-gray-500 text-sm">{(products || []).length} / {count || 0} ürün</p>
+              <p className="text-gray-500 text-sm">
+                {(products || []).length} / {count || 0} {t.filters.products}
+              </p>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">Sırala:</span>
                 <div className="flex gap-1">
                   {[
-                    { value: "newest", label: "En Yeni" },
-                    { value: "most-viewed", label: "Popüler" },
-                    { value: "name", label: "A-Z" },
+                    { value: "newest", label: t.filters.sortNewest },
+                    { value: "most-viewed", label: t.filters.sortPopular },
+                    { value: "name", label: t.filters.sortName },
                   ].map(opt => (
                     <Link
                       key={opt.value}
@@ -146,27 +166,12 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
               </div>
             </div>
 
-            {/* Sub-categories */}
-            {(subCategories || []).length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-6">
-                {(subCategories || []).map(sub => (
-                  <Link
-                    key={sub.id}
-                    href={`/${lang}/kategori/${sub.slug}`}
-                    className="px-3 py-1.5 bg-white border border-gray-200 rounded-full text-sm text-gray-600 hover:border-[#C0202A] hover:text-[#C0202A] transition-colors"
-                  >
-                    {getCategoryName(sub, lang)}
-                  </Link>
-                ))}
-              </div>
-            )}
-
             {(products || []).length === 0 ? (
               <div className="text-center py-20 text-gray-400">
                 <div className="text-6xl mb-4">⚙️</div>
                 <p className="text-xl">{t.search.noResults}</p>
                 <Link href={`/${lang}/urunler`} className="mt-4 inline-block text-[#C0202A] hover:underline">
-                  Tüm ürünlere bak
+                  {t.filters.clear}
                 </Link>
               </div>
             ) : (
@@ -195,7 +200,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
                         href={`?${new URLSearchParams({ ...sp, page: String(currentPage - 1) }).toString()}`}
                         className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm hover:bg-gray-50"
                       >
-                        ← Önceki
+                        {t.filters.prev}
                       </Link>
                     )}
                     {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
@@ -219,7 +224,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
                         href={`?${new URLSearchParams({ ...sp, page: String(currentPage + 1) }).toString()}`}
                         className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm hover:bg-gray-50"
                       >
-                        Sonraki →
+                        {t.filters.next}
                       </Link>
                     )}
                   </div>

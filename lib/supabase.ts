@@ -94,6 +94,8 @@ export type VariantGroup = {
   label_ru?: string;
   label_ar?: string;
   options: string[];
+  // Seçenek bazlı görseller: { "Büyük": ["url1", "url2"], "Küçük": ["url3"] }
+  option_images?: Record<string, string[]>;
 };
 
 export type OrderItem = {

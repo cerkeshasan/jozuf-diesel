@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Category } from "@/lib/supabase";
 import type { Translations } from "@/lib/translations";
-import { getCategoryName } from "@/lib/translations";
+import CategoryTree from "./CategoryTree";
 
 interface ProductsFiltersProps {
   categories: Category[];
@@ -16,11 +16,8 @@ interface ProductsFiltersProps {
   t: Translations;
 }
 
-const filterLabels: Record<string, { filters: string; clear: string; categories: string; all: string; stock: string; brand: string }> = {
-  en: { filters: "Filters", clear: "Clear", categories: "Categories", all: "All", stock: "Stock Status", brand: "Brand" },
-  tr: { filters: "Filtreler", clear: "Temizle", categories: "Kategoriler", all: "Tümü", stock: "Stok Durumu", brand: "Marka" },
-  ru: { filters: "Фильтры", clear: "Сбросить", categories: "Категории", all: "Все", stock: "Наличие", brand: "Бренд" },
-  ar: { filters: "الفلاتر", clear: "مسح", categories: "الفئات", all: "الكل", stock: "حالة المخزون", brand: "الماركة" },
+const categoryLabels: Record<string, string> = {
+  en: "Categories", tr: "Kategoriler", ru: "Категории", ar: "الفئات",
 };
 
 export default function ProductsFilters({
@@ -33,7 +30,6 @@ export default function ProductsFilters({
   t,
 }: ProductsFiltersProps) {
   const router = useRouter();
-  const labels = filterLabels[lang] || filterLabels.en;
 
   const navigate = (updates: Record<string, string>) => {
     const params = new URLSearchParams(
@@ -47,56 +43,48 @@ export default function ProductsFilters({
     router.push(`/${lang}/urunler?${params.toString()}`);
   };
 
-  const parents = categories.filter(c => !c.parent_id);
-
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-6 sticky top-24 space-y-6">
+    <div className="bg-white rounded-2xl shadow-sm p-5 sticky top-24 space-y-5">
       <div className="flex items-center justify-between">
-        <h3 className="font-oswald font-semibold text-[#0D1B2A] text-lg">{labels.filters}</h3>
+        <h3 className="font-oswald font-semibold text-[#0D1B2A] text-lg">{t.filters.title}</h3>
         {(currentCategory || currentBrand || currentStock) && (
           <Link href={`/${lang}/urunler`} className="text-xs text-[#C0202A] hover:underline">
-            {labels.clear}
+            {t.filters.clear}
           </Link>
         )}
       </div>
 
-      {/* Categories */}
+      {/* Kategori ağacı */}
       <div>
-        <h4 className="font-medium text-xs text-gray-500 mb-3 uppercase tracking-wide">{labels.categories}</h4>
-        <div className="space-y-1.5">
-          <label className="flex items-center gap-2 cursor-pointer group">
-            <input
-              type="radio"
-              name="category"
-              checked={!currentCategory}
-              onChange={() => navigate({ category: "" })}
-              className="accent-[#C0202A]"
-            />
-            <span className="text-sm text-gray-600 group-hover:text-[#C0202A]">{labels.all}</span>
-          </label>
-          {parents.map((cat) => (
-            <label key={cat.id} className="flex items-center gap-2 cursor-pointer group">
-              <input
-                type="radio"
-                name="category"
-                checked={currentCategory === cat.id}
-                onChange={() => navigate({ category: cat.id })}
-                className="accent-[#C0202A]"
-              />
-              <span className="text-sm text-gray-600 group-hover:text-[#C0202A] transition-colors">
-                {getCategoryName(cat, lang)}
-              </span>
-            </label>
-          ))}
-        </div>
+        <h4 className="font-medium text-xs text-gray-500 mb-2 uppercase tracking-wide">
+          {categoryLabels[lang] || categoryLabels.en}
+        </h4>
+        {/* Tümü seçeneği */}
+        <button
+          type="button"
+          onClick={() => navigate({ category: "" })}
+          className={`w-full flex items-center gap-2 px-2 py-2 rounded-xl text-sm font-medium text-left mb-1 transition-colors ${
+            !currentCategory ? "bg-[#C0202A]/10 text-[#C0202A]" : "text-gray-500 hover:bg-gray-100"
+          }`}
+        >
+          {t.filters.all}
+        </button>
+        <CategoryTree
+          categories={categories}
+          lang={lang}
+          activeCategoryId={currentCategory}
+          onParentClick={(cat) => navigate({ category: cat.id })}
+        />
       </div>
 
-      {/* Stock */}
+      <div className="border-t border-gray-100" />
+
+      {/* Stok */}
       <div>
-        <h4 className="font-medium text-xs text-gray-500 mb-3 uppercase tracking-wide">{labels.stock}</h4>
+        <h4 className="font-medium text-xs text-gray-500 mb-2 uppercase tracking-wide">{t.filters.stockStatus}</h4>
         <div className="space-y-1.5">
           {[
-            { value: "", label: labels.all },
+            { value: "", label: t.filters.all },
             { value: "in_stock", label: t.product.inStock },
             { value: "on_order", label: t.product.onOrder },
             { value: "out_of_stock", label: t.product.outOfStock },
@@ -117,37 +105,40 @@ export default function ProductsFilters({
         </div>
       </div>
 
-      {/* Brands */}
+      {/* Marka */}
       {brands.length > 0 && (
-        <div>
-          <h4 className="font-medium text-xs text-gray-500 mb-3 uppercase tracking-wide">{labels.brand}</h4>
-          <div className="space-y-1.5">
-            <label className="flex items-center gap-2 cursor-pointer group">
-              <input
-                type="radio"
-                name="brand"
-                checked={!currentBrand}
-                onChange={() => navigate({ brand: "" })}
-                className="accent-[#C0202A]"
-              />
-              <span className="text-sm text-gray-600 group-hover:text-[#C0202A]">{labels.all}</span>
-            </label>
-            {brands.slice(0, 10).map((brand) => (
-              <label key={brand} className="flex items-center gap-2 cursor-pointer group">
+        <>
+          <div className="border-t border-gray-100" />
+          <div>
+            <h4 className="font-medium text-xs text-gray-500 mb-2 uppercase tracking-wide">{t.filters.brand}</h4>
+            <div className="space-y-1.5">
+              <label className="flex items-center gap-2 cursor-pointer group">
                 <input
                   type="radio"
                   name="brand"
-                  checked={currentBrand === brand}
-                  onChange={() => navigate({ brand })}
+                  checked={!currentBrand}
+                  onChange={() => navigate({ brand: "" })}
                   className="accent-[#C0202A]"
                 />
-                <span className="text-sm text-gray-600 group-hover:text-[#C0202A] transition-colors">
-                  {brand}
-                </span>
+                <span className="text-sm text-gray-600 group-hover:text-[#C0202A]">{t.filters.all}</span>
               </label>
-            ))}
+              {brands.slice(0, 10).map((brand) => (
+                <label key={brand} className="flex items-center gap-2 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="brand"
+                    checked={currentBrand === brand}
+                    onChange={() => navigate({ brand })}
+                    className="accent-[#C0202A]"
+                  />
+                  <span className="text-sm text-gray-600 group-hover:text-[#C0202A] transition-colors">
+                    {brand}
+                  </span>
+                </label>
+              ))}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

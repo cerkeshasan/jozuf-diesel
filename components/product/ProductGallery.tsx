@@ -7,17 +7,30 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 interface ProductGalleryProps {
   images: string[];
   name: string;
+  // Varyant bazlı görsel altyapısı — ileride ProductDetailClient'tan gelecek
+  variantImages?: Record<string, string[]>;
+  selectedVariant?: string | null;
 }
 
-export default function ProductGallery({ images, name }: ProductGalleryProps) {
+export default function ProductGallery({ images, name, variantImages, selectedVariant }: ProductGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [hovering, setHovering] = useState(false);
 
-  const hasMultiple = images.length > 1;
-  const hoverIndex = hasMultiple ? (activeIndex + 1) % images.length : activeIndex;
+  // Eğer seçili varyanta ait özel görsel varsa onu kullan
+  const activeImages =
+    selectedVariant && variantImages?.[selectedVariant]?.length
+      ? variantImages[selectedVariant]
+      : images;
 
-  const prev = () => setActiveIndex((i) => (i === 0 ? images.length - 1 : i - 1));
-  const next = () => setActiveIndex((i) => (i === images.length - 1 ? 0 : i + 1));
+  // Varyant değişince ilk görsele dön
+  const displayImages = activeImages.length > 0 ? activeImages : images;
+  const safeIndex = activeIndex < displayImages.length ? activeIndex : 0;
+
+  const hasMultiple = displayImages.length > 1;
+  const hoverIndex = hasMultiple ? (safeIndex + 1) % displayImages.length : safeIndex;
+
+  const prev = () => setActiveIndex((i) => (i === 0 ? displayImages.length - 1 : i - 1));
+  const next = () => setActiveIndex((i) => (i === displayImages.length - 1 ? 0 : i + 1));
 
   return (
     <div>
@@ -28,11 +41,11 @@ export default function ProductGallery({ images, name }: ProductGalleryProps) {
           onMouseEnter={() => setHovering(true)}
           onMouseLeave={() => setHovering(false)}
         >
-          {images.length > 0 && images[activeIndex] ? (
+          {displayImages.length > 0 && displayImages[safeIndex] ? (
             <>
               <Image
-                src={images[activeIndex]}
-                alt={`${name} ${activeIndex + 1}`}
+                src={displayImages[safeIndex]}
+                alt={`${name} ${safeIndex + 1}`}
                 fill
                 className={`object-contain p-8 transition-all duration-300 ${hovering && hasMultiple ? "opacity-0 scale-105" : "opacity-100 scale-100"}`}
                 priority
@@ -40,7 +53,7 @@ export default function ProductGallery({ images, name }: ProductGalleryProps) {
               />
               {hasMultiple && (
                 <Image
-                  src={images[hoverIndex]}
+                  src={displayImages[hoverIndex]}
                   alt={`${name} ${hoverIndex + 1}`}
                   fill
                   className={`object-contain p-8 transition-all duration-300 scale-105 ${hovering ? "opacity-100" : "opacity-0"}`}
@@ -55,8 +68,8 @@ export default function ProductGallery({ images, name }: ProductGalleryProps) {
           )}
         </div>
 
-        {/* Prev/Next arrows - only when multiple images */}
-        {images.length > 1 && (
+        {/* Prev/Next arrows */}
+        {hasMultiple && (
           <>
             <button
               onClick={prev}
@@ -74,11 +87,11 @@ export default function ProductGallery({ images, name }: ProductGalleryProps) {
             </button>
             {/* Dots */}
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-              {images.map((_, i) => (
+              {displayImages.map((_, i) => (
                 <button
                   key={i}
                   onClick={() => setActiveIndex(i)}
-                  className={`w-2 h-2 rounded-full transition-colors ${i === activeIndex ? "bg-[#C0202A]" : "bg-gray-300"}`}
+                  className={`w-2 h-2 rounded-full transition-colors ${i === safeIndex ? "bg-[#C0202A]" : "bg-gray-300"}`}
                 />
               ))}
             </div>
@@ -87,14 +100,14 @@ export default function ProductGallery({ images, name }: ProductGalleryProps) {
       </div>
 
       {/* Thumbnails */}
-      {images.length > 1 && (
+      {displayImages.length > 1 && (
         <div className="grid grid-cols-4 gap-2">
-          {images.slice(0, 8).map((img, i) => (
+          {displayImages.slice(0, 8).map((img, i) => (
             <button
               key={i}
               onClick={() => setActiveIndex(i)}
               className={`bg-white rounded-xl overflow-hidden shadow-sm transition-all ${
-                i === activeIndex
+                i === safeIndex
                   ? "ring-2 ring-[#C0202A] shadow-md"
                   : "hover:ring-2 hover:ring-gray-200 opacity-70 hover:opacity-100"
               }`}
