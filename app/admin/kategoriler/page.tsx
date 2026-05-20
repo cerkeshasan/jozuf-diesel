@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, FolderOpen, AlertCircle, CheckCircle, Copy } from "lucide-react";
+import { Plus, Edit, Trash2, FolderOpen, AlertCircle, CheckCircle, Copy, ChevronDown, ChevronRight } from "lucide-react";
 import { adminFetch } from "@/lib/admin-fetch";
 import type { Category } from "@/lib/supabase";
 import ImageUpload from "@/components/ui/ImageUpload";
@@ -23,11 +23,21 @@ export default function AdminCategoriesPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const fetchCategories = () =>
     fetch("/api/categories")
       .then((r) => r.json())
-      .then((data) => Array.isArray(data) ? setCategories(data) : setCategories([]))
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setCategories(data);
+          // Başlangıçta tüm ana kategorileri aç
+          const parentIds = data.filter((c: Category) => !c.parent_id).map((c: Category) => c.id);
+          setExpandedIds(new Set(parentIds));
+        } else {
+          setCategories([]);
+        }
+      })
       .finally(() => setLoading(false));
 
   useEffect(() => { fetchCategories(); }, []);
@@ -46,13 +56,15 @@ export default function AdminCategoriesPage() {
     });
     setError("");
     setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const openNew = () => {
+  const openNew = (parentId = "") => {
     setEditCat(null);
-    setForm(emptyForm);
+    setForm({ ...emptyForm, parent_id: parentId });
     setError("");
     setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const autoSlug = () => {
@@ -62,7 +74,6 @@ export default function AdminCategoriesPage() {
 
   const handleSave = async () => {
     setError("");
-
     if (!form.name_en.trim()) { setError("İngilizce ad zorunludur."); return; }
     if (!form.slug.trim()) { setError("Slug zorunludur. 'Auto' butonuna tıklayın."); return; }
 
@@ -88,28 +99,26 @@ export default function AdminCategoriesPage() {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || `Hata: ${res.status}`);
-        setSaving(false);
-        return;
-      }
-
+      if (!res.ok) { setError(data.error || `Hata: ${res.status}`); setSaving(false); return; }
       setSuccess(editCat ? "Kategori güncellendi." : "Kategori eklendi.");
       setTimeout(() => setSuccess(""), 3000);
       setShowForm(false);
       await fetchCategories();
-    } catch (e) {
+    } catch {
       setError("Bağlantı hatası. Tekrar deneyin.");
     }
     setSaving(false);
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`"${name}" kategorisini silmek istediğinizden emin misiniz?`)) return;
+    const children = categories.filter(c => c.parent_id === id);
+    const msg = children.length > 0
+      ? `"${name}" ve içindeki ${children.length} alt kategori silinecek. Emin misiniz?`
+      : `"${name}" kategorisini silmek istediğinizden emin misiniz?`;
+    if (!confirm(msg)) return;
     const res = await adminFetch(`/api/categories?id=${id}`, { method: "DELETE" });
     if (res.ok) {
-      setCategories((c) => c.filter((cat) => cat.id !== id));
+      setCategories((c) => c.filter((cat) => cat.id !== id && cat.parent_id !== id));
       setSelected((s) => { const n = new Set(s); n.delete(id); return n; });
       setSuccess("Kategori silindi.");
       setTimeout(() => setSuccess(""), 3000);
@@ -134,14 +143,16 @@ export default function AdminCategoriesPage() {
     await fetchCategories();
   };
 
-  const toggleSelect = (id: string) => {
+  const toggleSelect = (id: string) =>
     setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  };
 
   const toggleAll = () => {
     const allIds = categories.map((c) => c.id);
     setSelected(selected.size === allIds.length ? new Set() : new Set(allIds));
   };
+
+  const toggleExpand = (id: string) =>
+    setExpandedIds((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const copyId = (id: string) => {
     navigator.clipboard.writeText(id);
@@ -149,7 +160,9 @@ export default function AdminCategoriesPage() {
     setTimeout(() => setCopiedId(null), 1500);
   };
 
-  const parents = categories.filter((c) => !c.parent_id);
+  const parents = categories.filter((c) => !c.parent_id).sort((a, b) => a.order_index - b.order_index);
+  const isSubForm = showForm && !!form.parent_id;
+  const formParentName = form.parent_id ? categories.find(c => c.id === form.parent_id)?.name_en : "";
 
   return (
     <div className="space-y-6">
@@ -157,49 +170,54 @@ export default function AdminCategoriesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-oswald text-2xl font-bold text-[#0D1B2A]">Kategoriler</h1>
-          <p className="text-gray-500 text-sm">{categories.length} kategori</p>
+          <p className="text-gray-500 text-sm">{parents.length} ana · {categories.length - parents.length} alt kategori</p>
         </div>
         <div className="flex items-center gap-2">
           {selected.size > 0 && (
-            <button
-              onClick={handleBulkDelete}
-              disabled={bulkDeleting}
-              className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-red-600 transition-colors disabled:opacity-50 text-sm"
-            >
+            <button onClick={handleBulkDelete} disabled={bulkDeleting}
+              className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-red-600 transition-colors disabled:opacity-50 text-sm">
               <Trash2 size={15} />
               {bulkDeleting ? "Siliniyor..." : `${selected.size} Seçiliyi Sil`}
             </button>
           )}
-          <button
-            onClick={openNew}
-            className="flex items-center gap-2 bg-[#C0202A] text-white px-4 py-2 rounded-xl font-medium hover:bg-[#a81b23] transition-colors"
-          >
-            <Plus size={18} />
-            Yeni Kategori
+          <button onClick={() => openNew("")}
+            className="flex items-center gap-2 bg-[#C0202A] text-white px-4 py-2 rounded-xl font-medium hover:bg-[#a81b23] transition-colors">
+            <Plus size={18} /> Yeni Ana Kategori
           </button>
         </div>
       </div>
 
-      {/* Notifications */}
+      {/* Bildirimler */}
       {success && (
         <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl">
           <CheckCircle size={18} /> {success}
         </div>
       )}
+      {error && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
+          <AlertCircle size={18} /> {error}
+        </div>
+      )}
 
       {/* Form */}
       {showForm && (
-        <div className="bg-white rounded-2xl shadow-sm p-6">
-          <h2 className="font-oswald font-semibold text-[#0D1B2A] text-lg mb-4">
-            {editCat ? "Kategori Düzenle" : "Yeni Kategori Ekle"}
-          </h2>
-
-          {error && (
-            <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 text-sm">
-              <AlertCircle size={16} className="shrink-0" />
-              {error}
+        <div className="bg-white rounded-2xl shadow-sm p-6 border-2 border-[#C0202A]/20">
+          {/* Form başlığı */}
+          <div className="flex items-center gap-3 mb-5">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isSubForm ? "bg-blue-100" : "bg-[#C0202A]/10"}`}>
+              <FolderOpen size={16} className={isSubForm ? "text-blue-600" : "text-[#C0202A]"} />
             </div>
-          )}
+            <div>
+              <h2 className="font-oswald font-semibold text-[#0D1B2A] text-lg leading-none">
+                {editCat ? "Kategori Düzenle" : isSubForm ? "Alt Kategori Ekle" : "Ana Kategori Ekle"}
+              </h2>
+              {isSubForm && (
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Üst kategori: <span className="font-medium text-blue-600">{formParentName}</span>
+                </p>
+              )}
+            </div>
+          </div>
 
           <div className="grid sm:grid-cols-2 gap-4">
             {(["en", "tr", "ru", "ar"] as const).map((lang) => (
@@ -212,7 +230,10 @@ export default function AdminCategoriesPage() {
                   value={form[`name_${lang}`]}
                   onChange={(e) => setForm({ ...form, [`name_${lang}`]: e.target.value })}
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#C0202A]"
-                  placeholder={lang === "en" ? "Bosch Common Rail" : ""}
+                  placeholder={
+                    lang === "en" ? (isSubForm ? "Leak-Off Connectors" : "Injector Parts") :
+                    lang === "tr" ? (isSubForm ? "Geri Dönüş Plastikleri" : "Enjektör Malzemeleri") : ""
+                  }
                 />
               </div>
             ))}
@@ -227,13 +248,10 @@ export default function AdminCategoriesPage() {
                   value={form.slug}
                   onChange={(e) => setForm({ ...form, slug: e.target.value })}
                   className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#C0202A]"
-                  placeholder="bosch-common-rail"
+                  placeholder="leak-off-connectors"
                 />
-                <button
-                  type="button"
-                  onClick={autoSlug}
-                  className="px-3 py-2 bg-gray-100 rounded-xl text-xs font-medium hover:bg-gray-200"
-                >
+                <button type="button" onClick={autoSlug}
+                  className="px-3 py-2 bg-gray-100 rounded-xl text-xs font-medium hover:bg-gray-200">
                   Auto
                 </button>
               </div>
@@ -246,9 +264,9 @@ export default function AdminCategoriesPage() {
                 onChange={(e) => setForm({ ...form, parent_id: e.target.value })}
                 className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#C0202A]"
               >
-                <option value="">Ana Kategori (Üst yok)</option>
+                <option value="">— Ana Kategori (üst yok)</option>
                 {parents.filter((p) => p.id !== editCat?.id).map((p) => (
-                  <option key={p.id} value={p.id}>{p.name_en}</option>
+                  <option key={p.id} value={p.id}>{p.name_tr || p.name_en}</option>
                 ))}
               </select>
             </div>
@@ -275,28 +293,19 @@ export default function AdminCategoriesPage() {
           </div>
 
           <div className="flex gap-3 mt-6">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="bg-[#C0202A] text-white px-6 py-2.5 rounded-xl font-medium hover:bg-[#a81b23] transition-colors disabled:opacity-50 flex items-center gap-2"
-            >
-              {saving ? (
-                <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Kaydediliyor...</>
-              ) : (
-                "Kaydet"
-              )}
+            <button onClick={handleSave} disabled={saving}
+              className="bg-[#C0202A] text-white px-6 py-2.5 rounded-xl font-medium hover:bg-[#a81b23] transition-colors disabled:opacity-50 flex items-center gap-2">
+              {saving ? (<><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Kaydediliyor...</>) : "Kaydet"}
             </button>
-            <button
-              onClick={() => { setShowForm(false); setError(""); }}
-              className="border border-gray-200 text-gray-700 px-6 py-2.5 rounded-xl font-medium hover:bg-gray-50 transition-colors"
-            >
+            <button onClick={() => { setShowForm(false); setError(""); }}
+              className="border border-gray-200 text-gray-700 px-6 py-2.5 rounded-xl font-medium hover:bg-gray-50 transition-colors">
               İptal
             </button>
           </div>
         </div>
       )}
 
-      {/* Category list */}
+      {/* Kategori listesi */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-gray-400">Yükleniyor...</div>
@@ -307,84 +316,116 @@ export default function AdminCategoriesPage() {
           </div>
         ) : (
           <>
-          {/* Table header */}
-          <div className="flex items-center gap-4 px-6 py-3 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-            <input
-              type="checkbox"
-              checked={selected.size === categories.length && categories.length > 0}
-              onChange={toggleAll}
-              className="accent-[#C0202A] w-4 h-4"
-            />
-            <span className="w-5" />
-            <span className="flex-1">Kategori</span>
-            <span className="hidden md:block">ID</span>
-            <span className="w-28 text-right">İşlem</span>
-          </div>
+            {/* Tablo başlığı */}
+            <div className="flex items-center gap-3 px-5 py-3 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              <input type="checkbox"
+                checked={selected.size === categories.length && categories.length > 0}
+                onChange={toggleAll}
+                className="accent-[#C0202A] w-4 h-4" />
+              <span className="flex-1">Kategori adı</span>
+              <span className="hidden lg:block w-72">ID</span>
+              <span className="w-52 text-right">İşlemler</span>
+            </div>
 
-          <div className="divide-y divide-gray-50">
-            {parents.map((cat) => (
-              <div key={cat.id}>
-                <div className={`flex items-center gap-4 px-6 py-4 hover:bg-gray-50 ${selected.has(cat.id) ? "bg-red-50/40" : ""}`}>
-                  <input
-                    type="checkbox"
-                    checked={selected.has(cat.id)}
-                    onChange={() => toggleSelect(cat.id)}
-                    className="accent-[#C0202A] w-4 h-4 shrink-0"
-                  />
-                  <FolderOpen size={18} className="text-[#C0202A] shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm text-[#0D1B2A]">{cat.name_en}</p>
-                    <p className="text-xs text-gray-400">/{cat.slug} · {cat.product_count} ürün</p>
-                  </div>
-                  <button
-                    onClick={() => copyId(cat.id)}
-                    className="hidden md:flex items-center gap-2 font-mono text-xs text-gray-400 hover:text-[#C0202A] hover:bg-gray-100 px-2 py-1 rounded-lg transition-colors"
-                    title="Tıkla: ID kopyala"
-                  >
-                    <span>{cat.id}</span>
-                    {copiedId === cat.id ? <CheckCircle size={13} className="text-green-500 shrink-0" /> : <Copy size={13} className="shrink-0" />}
-                  </button>
-                  <div className="flex gap-2 w-28 justify-end">
-                    <button onClick={() => openEdit(cat)} className="flex items-center gap-1 text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg">
-                      <Edit size={12} /> Düzenle
-                    </button>
-                    <button onClick={() => handleDelete(cat.id, cat.name_en)} className="flex items-center gap-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg">
-                      <Trash2 size={12} /> Sil
-                    </button>
-                  </div>
-                </div>
-                {categories.filter((c) => c.parent_id === cat.id).map((child) => (
-                  <div key={child.id} className={`flex items-center gap-4 px-6 py-3 pl-14 bg-gray-50/50 hover:bg-gray-50 ${selected.has(child.id) ? "bg-red-50/40" : ""}`}>
-                    <input
-                      type="checkbox"
-                      checked={selected.has(child.id)}
-                      onChange={() => toggleSelect(child.id)}
-                      className="accent-[#C0202A] w-4 h-4 shrink-0"
-                    />
-                    <FolderOpen size={14} className="text-gray-400 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-[#0D1B2A]">{child.name_en}</p>
-                      <p className="text-xs text-gray-400">/{child.slug}</p>
-                    </div>
-                    <div className="w-64 hidden md:flex items-center gap-1.5">
-                      <span className="font-mono text-xs text-gray-400 truncate">{child.id}</span>
-                      <button onClick={() => copyId(child.id)} className="shrink-0 text-gray-300 hover:text-gray-500 transition-colors" title="Kopyala">
-                        {copiedId === child.id ? <CheckCircle size={13} className="text-green-500" /> : <Copy size={13} />}
+            <div className="divide-y divide-gray-50">
+              {parents.map((cat) => {
+                const subs = categories
+                  .filter(c => c.parent_id === cat.id)
+                  .sort((a, b) => a.order_index - b.order_index);
+                const isExpanded = expandedIds.has(cat.id);
+
+                return (
+                  <div key={cat.id}>
+                    {/* Ana kategori satırı */}
+                    <div className={`flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors ${selected.has(cat.id) ? "bg-red-50/40" : ""}`}>
+                      <input type="checkbox" checked={selected.has(cat.id)} onChange={() => toggleSelect(cat.id)}
+                        className="accent-[#C0202A] w-4 h-4 shrink-0" />
+
+                      {/* Açma/kapama */}
+                      <button onClick={() => toggleExpand(cat.id)}
+                        className="shrink-0 text-gray-400 hover:text-[#C0202A] transition-colors">
+                        {isExpanded
+                          ? <ChevronDown size={16} />
+                          : <ChevronRight size={16} />}
                       </button>
-                    </div>
-                    <div className="flex gap-2 w-28 justify-end">
-                      <button onClick={() => openEdit(child)} className="flex items-center gap-1 text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg">
-                        <Edit size={12} /> Düzenle
+
+                      <FolderOpen size={17} className="text-[#C0202A] shrink-0" />
+
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm text-[#0D1B2A]">
+                          {cat.name_tr || cat.name_en}
+                          {cat.name_tr && cat.name_tr !== cat.name_en && (
+                            <span className="ml-1.5 text-xs text-gray-400 font-normal">({cat.name_en})</span>
+                          )}
+                        </p>
+                        <p className="text-xs text-gray-400">/{cat.slug} · {subs.length} alt kategori</p>
+                      </div>
+
+                      <button onClick={() => copyId(cat.id)}
+                        className="hidden lg:flex items-center gap-1.5 font-mono text-xs text-gray-400 hover:text-[#C0202A] hover:bg-gray-100 px-2 py-1 rounded-lg transition-colors w-72"
+                        title="ID kopyala">
+                        <span className="truncate">{cat.id}</span>
+                        {copiedId === cat.id ? <CheckCircle size={12} className="text-green-500 shrink-0" /> : <Copy size={12} className="shrink-0" />}
                       </button>
-                      <button onClick={() => handleDelete(child.id, child.name_en)} className="flex items-center gap-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg">
-                        <Trash2 size={12} /> Sil
-                      </button>
+
+                      <div className="flex items-center gap-1.5 w-52 justify-end">
+                        <button onClick={() => openNew(cat.id)}
+                          className="flex items-center gap-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 px-2.5 py-1.5 rounded-lg whitespace-nowrap">
+                          <Plus size={11} /> Alt Kategori
+                        </button>
+                        <button onClick={() => openEdit(cat)}
+                          className="flex items-center gap-1 text-xs bg-gray-100 hover:bg-gray-200 px-2.5 py-1.5 rounded-lg">
+                          <Edit size={11} /> Düzenle
+                        </button>
+                        <button onClick={() => handleDelete(cat.id, cat.name_en)}
+                          className="flex items-center gap-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 px-2.5 py-1.5 rounded-lg">
+                          <Trash2 size={11} /> Sil
+                        </button>
+                      </div>
                     </div>
+
+                    {/* Alt kategoriler */}
+                    {isExpanded && subs.map((child) => (
+                      <div key={child.id}
+                        className={`flex items-center gap-3 px-5 py-2.5 pl-16 border-t border-gray-50 bg-gray-50/40 hover:bg-gray-50 transition-colors ${selected.has(child.id) ? "bg-red-50/40" : ""}`}>
+                        <input type="checkbox" checked={selected.has(child.id)} onChange={() => toggleSelect(child.id)}
+                          className="accent-[#C0202A] w-4 h-4 shrink-0" />
+
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-300 shrink-0" />
+
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-[#0D1B2A]">
+                            {child.name_tr || child.name_en}
+                            {child.name_tr && child.name_tr !== child.name_en && (
+                              <span className="ml-1.5 text-xs text-gray-400">({child.name_en})</span>
+                            )}
+                          </p>
+                          <p className="text-xs text-gray-400">/{child.slug}</p>
+                        </div>
+
+                        <button onClick={() => copyId(child.id)}
+                          className="hidden lg:flex items-center gap-1.5 font-mono text-xs text-gray-400 hover:text-[#C0202A] hover:bg-white px-2 py-1 rounded-lg transition-colors w-72"
+                          title="ID kopyala">
+                          <span className="truncate">{child.id}</span>
+                          {copiedId === child.id ? <CheckCircle size={12} className="text-green-500 shrink-0" /> : <Copy size={12} className="shrink-0" />}
+                        </button>
+
+                        <div className="flex items-center gap-1.5 w-52 justify-end">
+                          <button onClick={() => openEdit(child)}
+                            className="flex items-center gap-1 text-xs bg-gray-100 hover:bg-gray-200 px-2.5 py-1.5 rounded-lg">
+                            <Edit size={11} /> Düzenle
+                          </button>
+                          <button onClick={() => handleDelete(child.id, child.name_en)}
+                            className="flex items-center gap-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 px-2.5 py-1.5 rounded-lg">
+                            <Trash2 size={11} /> Sil
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
           </>
         )}
       </div>
