@@ -3,6 +3,8 @@ import Script from "next/script";
 import "./globals.css";
 import { createServiceClient } from "@/lib/supabase";
 
+const GA_ID = "G-EC1Q2CV91W";
+
 export const metadata: Metadata = {
   title: "Jozuf Diesel — Common Rail & Injector Spare Parts",
   description: "Premium diesel injection spare parts. Bosch, Delphi, Denso, Siemens systems. 30+ years experience. Ships to 50+ countries.",
@@ -15,19 +17,13 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  let gaId = "";
   let faviconUrl = "/favicon.svg";
   try {
     const supabase = createServiceClient();
-    const { data } = await supabase.from("settings").select("key, value").in("key", ["google_analytics", "favicon_url"]);
-    if (Array.isArray(data)) {
-      for (const row of data) {
-        if (row.key === "google_analytics") gaId = row.value?.trim() || "";
-        if (row.key === "favicon_url" && row.value?.trim()) faviconUrl = row.value.trim();
-      }
-    }
+    const { data } = await supabase.from("settings").select("key, value").eq("key", "favicon_url").single();
+    if (data?.value?.trim()) faviconUrl = data.value.trim();
   } catch {
-    // no-op: settings are optional
+    // no-op
   }
 
   return (
@@ -43,22 +39,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body className="min-h-screen flex flex-col antialiased">
         {children}
-        {gaId && (
-          <>
-            <Script
-              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
-              strategy="afterInteractive"
-            />
-            <Script id="gtag-init" strategy="afterInteractive">
-              {`
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', '${gaId}');
-              `}
-            </Script>
-          </>
-        )}
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="gtag-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GA_ID}');
+          `}
+        </Script>
       </body>
     </html>
   );
