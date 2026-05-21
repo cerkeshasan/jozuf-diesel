@@ -271,6 +271,12 @@ export default function Footer({ lang, t, settings = {} }: FooterProps) {
             ))}
           </div>
         </div>
+        {/* Yasal zorunluluk: tüzel kişilik bilgisi */}
+        <div className="border-t border-white/5">
+          <p className="max-w-7xl mx-auto px-4 py-2 text-[11px] text-gray-700 text-center">
+            Üçler Otomotiv — Selçuk V.D. Vergi No: 5771 214 3662 &nbsp;·&nbsp; Horozluhan Mahallesi İhlamur Sk. No:10, Selçuklu / KONYA
+          </p>
+        </div>
       </div>
     </footer>
   );
