@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, FolderOpen, AlertCircle, CheckCircle, Copy, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Edit, Trash2, FolderOpen, AlertCircle, CheckCircle, Copy, ChevronDown, ChevronRight, Download } from "lucide-react";
+import * as XLSX from "xlsx";
 import { adminFetch } from "@/lib/admin-fetch";
 import type { Category } from "@/lib/supabase";
 import ImageUpload from "@/components/ui/ImageUpload";
@@ -160,6 +161,55 @@ export default function AdminCategoriesPage() {
     setTimeout(() => setCopiedId(null), 1500);
   };
 
+  const exportExcel = () => {
+    const rows: Record<string, string | number>[] = [];
+    const sorted = categories
+      .filter(c => !c.parent_id)
+      .sort((a, b) => a.order_index - b.order_index);
+
+    for (const parent of sorted) {
+      rows.push({
+        "Tür": "Ana Kategori",
+        "Üst Kategori": "",
+        "Üst Kategori ID": "",
+        "Ad (TR)": parent.name_tr || "",
+        "Ad (EN)": parent.name_en,
+        "Ad (RU)": parent.name_ru || "",
+        "Ad (AR)": parent.name_ar || "",
+        "Slug": parent.slug,
+        "Sıra": parent.order_index,
+        "ID": parent.id,
+      });
+      const subs = categories
+        .filter(c => c.parent_id === parent.id)
+        .sort((a, b) => a.order_index - b.order_index);
+      for (const sub of subs) {
+        rows.push({
+          "Tür": "Alt Kategori",
+          "Üst Kategori": parent.name_tr || parent.name_en,
+          "Üst Kategori ID": parent.id,
+          "Ad (TR)": sub.name_tr || "",
+          "Ad (EN)": sub.name_en,
+          "Ad (RU)": sub.name_ru || "",
+          "Ad (AR)": sub.name_ar || "",
+          "Slug": sub.slug,
+          "Sıra": sub.order_index,
+          "ID": sub.id,
+        });
+      }
+    }
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = [
+      { wch: 14 }, { wch: 24 }, { wch: 38 },
+      { wch: 24 }, { wch: 24 }, { wch: 24 }, { wch: 24 },
+      { wch: 28 }, { wch: 6 }, { wch: 38 },
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Kategoriler");
+    XLSX.writeFile(wb, "jozuf-kategoriler.xlsx");
+  };
+
   const parents = categories.filter((c) => !c.parent_id).sort((a, b) => a.order_index - b.order_index);
   const isSubForm = showForm && !!form.parent_id;
   const formParentName = form.parent_id ? categories.find(c => c.id === form.parent_id)?.name_en : "";
@@ -180,6 +230,10 @@ export default function AdminCategoriesPage() {
               {bulkDeleting ? "Siliniyor..." : `${selected.size} Seçiliyi Sil`}
             </button>
           )}
+          <button onClick={exportExcel} disabled={categories.length === 0}
+            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-green-700 transition-colors disabled:opacity-40 text-sm">
+            <Download size={15} /> Excel İndir
+          </button>
           <button onClick={() => openNew("")}
             className="flex items-center gap-2 bg-[#C0202A] text-white px-4 py-2 rounded-xl font-medium hover:bg-[#a81b23] transition-colors">
             <Plus size={18} /> Yeni Ana Kategori
