@@ -7,11 +7,11 @@ const supabaseHostname = process.env.NEXT_PUBLIC_SUPABASE_URL
 
 const ContentSecurityPolicy = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-  "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: https://${supabaseHostname} https:`,
-  `connect-src 'self' https://${supabaseHostname} https://api.resend.com wss://${supabaseHostname}`,
-  "font-src 'self' data:",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  `img-src 'self' data: blob: https://${supabaseHostname} https: https://www.google-analytics.com https://www.googletagmanager.com`,
+  `connect-src 'self' https://${supabaseHostname} https://api.resend.com wss://${supabaseHostname} https://www.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://region1.google-analytics.com`,
+  "font-src 'self' data: https://fonts.gstatic.com",
   "frame-ancestors 'none'",
   "object-src 'none'",
   "base-uri 'self'",
