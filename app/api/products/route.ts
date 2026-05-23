@@ -98,6 +98,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues }, { status: 400 });
   }
 
+  // Duplicate slug kontrolü
+  const { data: slugExists } = await supabase
+    .from("products")
+    .select("id")
+    .eq("slug", parsed.data.slug)
+    .maybeSingle();
+  if (slugExists) {
+    return NextResponse.json(
+      { error: `Bu slug zaten kullanılıyor: "${parsed.data.slug}". Farklı bir isim veya slug deneyin.` },
+      { status: 409 }
+    );
+  }
+
+  // Duplicate SKU kontrolü
+  if (parsed.data.sku) {
+    const { data: skuExists } = await supabase
+      .from("products")
+      .select("id")
+      .eq("sku", parsed.data.sku)
+      .maybeSingle();
+    if (skuExists) {
+      return NextResponse.json(
+        { error: `Bu SKU zaten kayıtlı: "${parsed.data.sku}". Bu ürün sistemde mevcut.` },
+        { status: 409 }
+      );
+    }
+  }
+
   const { data, error } = await supabase.from("products").insert(parsed.data).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data, { status: 201 });

@@ -165,12 +165,7 @@ export async function POST(req: NextRequest) {
           }
 
           if (existing) {
-            const { error } = await supabase
-              .from("products")
-              .update({ ...payload, updated_at: new Date().toISOString() })
-              .eq("id", existing.id);
-            if (error) errors.push(`Güncelleme hatası (${name}): ${error.message}`);
-            else updated++;
+            errors.push(`Zaten mevcut — atlandı: "${name}" (SKU: ${payload.sku})`);
             continue;
           }
         }
@@ -182,7 +177,8 @@ export async function POST(req: NextRequest) {
           .maybeSingle();
 
         if (slugExisting) {
-          payload.slug = `${slug}-${Date.now()}`;
+          errors.push(`Zaten mevcut — atlandı: "${name}" (slug: ${slug})`);
+          continue;
         }
 
         const { error } = await supabase.from("products").insert(payload);
