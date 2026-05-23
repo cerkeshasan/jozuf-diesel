@@ -120,14 +120,13 @@ export default function BulkUpload({ onClose }: BulkUploadProps) {
 
     const row = [
       "Bosch Injector", "Bosch Enjektör", "Форсунка Bosch", "حاقن بوش",
-      "", "SKU001", "F00VC99002", "Bosch", "",
+      "", "SKU001", "F00VC99002", "Bosch", "injector-clamps",
       "in_stock", "10", "1", "1",
       "true", "false",
       "Common rail injector", "Common rail enjektör", "Форсунка common rail", "حاقن كومون ريل",
       "Mercedes C220 CDI|BMW 320d", "Mercedes C220 CDI|BMW 320d", "Mercedes C220 CDI|BMW 320d", "",
       '{"Type":"Injector","Pressure":"1800 bar"}', '{"Tip":"Enjektör","Basınç":"1800 bar"}', "", "",
       "https://example.com/img1.jpg|https://example.com/img2.jpg",
-      // options_json — CSV kuralı: dış çift tırnak, içteki çift tırnaklar ikiye katlanır
       '"' + optionsSample.replace(/"/g, '""') + '"',
     ];
 
@@ -157,6 +156,14 @@ export default function BulkUpload({ onClose }: BulkUploadProps) {
 
         <div className="p-6 overflow-y-auto flex-1 space-y-4">
           {/* Template download */}
+          <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+            <div className="flex-1 text-xs text-blue-700 space-y-1">
+              <p className="font-semibold">category_id sütunu için 3 farklı format kabul edilir:</p>
+              <p>• <span className="font-mono bg-blue-100 px-1 rounded">injector-clamps</span> — kategori slug&apos;ı (önerilen)</p>
+              <p>• <span className="font-mono bg-blue-100 px-1 rounded">Enjektör Kelepçeleri</span> — Türkçe kategori adı</p>
+              <p>• <span className="font-mono bg-blue-100 px-1 rounded">491d6280-a71b-...</span> — UUID (kategoriler Excel&apos;inden kopyalanabilir)</p>
+            </div>
+          </div>
           <button
             onClick={downloadTemplate}
             className="flex items-center gap-2 text-sm text-[#C0202A] hover:underline"

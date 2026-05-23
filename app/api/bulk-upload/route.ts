@@ -63,6 +63,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Ürün listesi boş." }, { status: 400 });
     }
 
+    // Tüm kategorileri bir kez çek — slug/ad ile ID çözümleme için
+    const { data: allCategories } = await supabase
+      .from("categories")
+      .select("id, slug, name_en, name_tr");
+    const categoryCache = allCategories || [];
+
+    const isUuid = (val: string) =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+    const resolveCategoryId = (raw: string): string | null => {
+      if (!raw) return null;
+      if (isUuid(raw)) return raw;
+      // slug ile bul
+      const bySlug = categoryCache.find(c => c.slug === raw);
+      if (bySlug) return bySlug.id;
+      // TR veya EN adı ile bul (büyük/küçük harf duyarsız)
+      const lower = raw.toLowerCase();
+      const byName = categoryCache.find(
+        c => c.name_tr?.toLowerCase() === lower || c.name_en?.toLowerCase() === lower
+      );
+      return byName ? byName.id : null;
+    };
+
     let inserted = 0;
     let updated = 0;
     const errors: string[] = [];
@@ -129,7 +152,7 @@ export async function POST(req: NextRequest) {
           sku: strOrNull(row.sku),
           oem_code: strOrNull(row.oem_code),
           brand: strOrNull(row.brand),
-          category_id: strOrNull(row.category_id),
+          category_id: resolveCategoryId(str(row.category_id)),
           stock_status: stockStatus,
           stock_quantity: parseInt(str(row.stock_quantity)) || 0,
           min_order_qty: parseInt(str(row.min_order_qty)) || 1,
