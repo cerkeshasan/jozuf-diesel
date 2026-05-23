@@ -1,8 +1,16 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Download, Loader2 } from "lucide-react";
 import { adminFetch } from "@/lib/admin-fetch";
+
+interface CategoryRef {
+  id: string;
+  slug: string;
+  name_tr: string | null;
+  name_en: string;
+  parent_id: string | null;
+}
 
 interface PreviewRow {
   name_en?: string;
@@ -30,7 +38,15 @@ export default function BulkUpload({ onClose }: BulkUploadProps) {
   const [parseError, setParseError] = useState("");
   const [dragging, setDragging] = useState(false);
   const [publishAfterUpload, setPublishAfterUpload] = useState(false);
+  const [categoryRefs, setCategoryRefs] = useState<CategoryRef[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch("/api/categories")
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setCategoryRefs(data); })
+      .catch(() => {});
+  }, []);
 
   const parseFile = async (file: File) => {
     setParseError("");
@@ -45,12 +61,9 @@ export default function BulkUpload({ onClose }: BulkUploadProps) {
       let wb: import("xlsx").WorkBook;
 
       if (isCsv) {
-        // CSV → okurken tarayıcının native UTF-8 desteğini kullan
-        // file.text() her zaman UTF-8 olarak decode eder (BOM varsa da yok sayar)
         const text = await file.text();
         wb = XLSX.read(text, { type: "string", codepage: 65001 });
       } else {
-        // Excel (.xlsx/.xls) — XLSX iç olarak UTF-16 kullanır, binary okuma yeterli
         const buffer = await file.arrayBuffer();
         wb = XLSX.read(buffer, { type: "array" });
       }
@@ -59,7 +72,7 @@ export default function BulkUpload({ onClose }: BulkUploadProps) {
       const data = XLSX.utils.sheet_to_json<PreviewRow>(ws, { defval: "" });
       setRows(data);
     } catch {
-      setParseError("Dosya okunamadı. Geçerli bir Excel veya CSV dosyası yükleyin.");
+      setParseError("Dosya okunamadi. Gecerli bir Excel veya CSV dosyasi yukleyin.");
     }
   };
 
@@ -90,55 +103,108 @@ export default function BulkUpload({ onClose }: BulkUploadProps) {
         data = await res.json();
       } catch {
         const text = await res.text().catch(() => "");
-        data = { inserted: 0, updated: 0, errors: [`Sunucu yanıtı okunamadı (HTTP ${res.status}): ${text.slice(0, 200)}`] };
+        data = { inserted: 0, updated: 0, errors: [`Sunucu yaniti okunamadi (HTTP ${res.status}): ${text.slice(0, 200)}`] };
       }
       setResult(data);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      setResult({ inserted: 0, updated: 0, errors: [`Ağ hatası: ${msg}`] });
+      setResult({ inserted: 0, updated: 0, errors: [`Ag hatasi: ${msg}`] });
     } finally {
       setLoading(false);
     }
   };
 
-  const downloadTemplate = () => {
-    const headers = [
-      "name_en", "name_tr", "name_ru", "name_ar",
-      "slug", "sku", "oem_code", "brand", "category_id",
-      "stock_status", "stock_quantity", "min_order_qty", "qty_step",
-      "is_active", "is_featured",
-      "description_en", "description_tr", "description_ru", "description_ar",
-      "compatible_vehicles_en", "compatible_vehicles_tr", "compatible_vehicles_ru", "compatible_vehicles_ar",
-      "specs_en", "specs_tr", "specs_ru", "specs_ar",
-      "images",
-      "options_json",
+  const downloadTemplate = async () => {
+    const XLSX = await import("xlsx");
+
+    // Sayfa 1: Urun sablonu (ornek satir)
+    const productRows = [
+      {
+        name_en: "Bosch Injector",
+        name_tr: "Bosch Enjektör",
+        name_ru: "Форсунка Bosch",
+        name_ar: "حاقن بوش",
+        slug: "",
+        sku: "SKU001",
+        oem_code: "F00VC99002",
+        brand: "Bosch",
+        category_id: "injector-clamps",
+        stock_status: "in_stock",
+        stock_quantity: 10,
+        min_order_qty: 1,
+        qty_step: 1,
+        is_active: "true",
+        is_featured: "false",
+        description_en: "Common rail injector",
+        description_tr: "Common rail enjektör",
+        description_ru: "",
+        description_ar: "",
+        compatible_vehicles_en: "Mercedes C220 CDI|BMW 320d",
+        compatible_vehicles_tr: "Mercedes C220 CDI|BMW 320d",
+        compatible_vehicles_ru: "",
+        compatible_vehicles_ar: "",
+        specs_en: '{"Type":"Injector","Pressure":"1800 bar"}',
+        specs_tr: '{"Tip":"Enjektör","Basınç":"1800 bar"}',
+        specs_ru: "",
+        specs_ar: "",
+        images: "https://example.com/img1.jpg|https://example.com/img2.jpg",
+        options_json: "",
+      },
     ];
 
-    const optionsSample = JSON.stringify([
-      { group_en: "Pipe Diameter", group_tr: "Boru Çapı", group_ru: "Диаметр", group_ar: "القطر", options: ["6mm", "8mm", "10mm"] },
-    ]);
-
-    const row = [
-      "Bosch Injector", "Bosch Enjektör", "Форсунка Bosch", "حاقن بوش",
-      "", "SKU001", "F00VC99002", "Bosch", "injector-clamps",
-      "in_stock", "10", "1", "1",
-      "true", "false",
-      "Common rail injector", "Common rail enjektör", "Форсунка common rail", "حاقن كومون ريل",
-      "Mercedes C220 CDI|BMW 320d", "Mercedes C220 CDI|BMW 320d", "Mercedes C220 CDI|BMW 320d", "",
-      '{"Type":"Injector","Pressure":"1800 bar"}', '{"Tip":"Enjektör","Basınç":"1800 bar"}', "", "",
-      "https://example.com/img1.jpg|https://example.com/img2.jpg",
-      '"' + optionsSample.replace(/"/g, '""') + '"',
+    const wsProducts = XLSX.utils.json_to_sheet(productRows);
+    wsProducts["!cols"] = [
+      { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 16 },
+      { wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 12 }, { wch: 26 },
+      { wch: 12 }, { wch: 8 }, { wch: 8 }, { wch: 6 },
+      { wch: 8 }, { wch: 8 },
+      { wch: 22 }, { wch: 22 }, { wch: 22 }, { wch: 16 },
+      { wch: 28 }, { wch: 28 }, { wch: 20 }, { wch: 16 },
+      { wch: 32 }, { wch: 32 }, { wch: 20 }, { wch: 16 },
+      { wch: 40 }, { wch: 16 },
     ];
 
-    // UTF-8 BOM (\uFEFF) ekleyince Excel doğru encoding ile açar
-    const csv = "\uFEFF" + headers.join(",") + "\n" + row.join(",");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "urun-sablonu.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+    // Sayfa 2: Mevcut kategoriler referans listesi
+    const parents = categoryRefs
+      .filter(c => !c.parent_id)
+      .sort((a, b) => a.slug.localeCompare(b.slug));
+
+    const catRows: Record<string, string>[] = [];
+    for (const p of parents) {
+      catRows.push({
+        "Tur": "Ana Kategori",
+        "Ust Kategori": "",
+        "Ad (TR)": p.name_tr || "",
+        "Ad (EN)": p.name_en,
+        "category_id icin slug": p.slug,
+        "ID": p.id,
+      });
+      const subs = categoryRefs
+        .filter(c => c.parent_id === p.id)
+        .sort((a, b) => a.slug.localeCompare(b.slug));
+      for (const s of subs) {
+        catRows.push({
+          "Tur": "Alt Kategori",
+          "Ust Kategori": p.name_tr || p.name_en,
+          "Ad (TR)": s.name_tr || "",
+          "Ad (EN)": s.name_en,
+          "category_id icin slug": s.slug,
+          "ID": s.id,
+        });
+      }
+    }
+
+    const wsCategories = XLSX.utils.json_to_sheet(
+      catRows.length > 0 ? catRows : [{ "Tur": "Henuz kategori yok" }]
+    );
+    wsCategories["!cols"] = [
+      { wch: 14 }, { wch: 24 }, { wch: 26 }, { wch: 26 }, { wch: 30 }, { wch: 38 },
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, wsProducts, "Urunler");
+    XLSX.utils.book_append_sheet(wb, wsCategories, "Kategoriler");
+    XLSX.writeFile(wb, "urun-sablonu.xlsx");
   };
 
   const previewCols = ["name_en", "name_tr", "sku", "oem_code", "brand", "stock_status"];
@@ -155,20 +221,19 @@ export default function BulkUpload({ onClose }: BulkUploadProps) {
         </div>
 
         <div className="p-6 overflow-y-auto flex-1 space-y-4">
-          {/* Template download */}
+          {/* Bilgi kutusu + sablon indir */}
           <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
             <div className="flex-1 text-xs text-blue-700 space-y-1">
-              <p className="font-semibold">category_id sütunu için 3 farklı format kabul edilir:</p>
-              <p>• <span className="font-mono bg-blue-100 px-1 rounded">injector-clamps</span> — kategori slug&apos;ı (önerilen)</p>
-              <p>• <span className="font-mono bg-blue-100 px-1 rounded">Enjektör Kelepçeleri</span> — Türkçe kategori adı</p>
-              <p>• <span className="font-mono bg-blue-100 px-1 rounded">491d6280-a71b-...</span> — UUID (kategoriler Excel&apos;inden kopyalanabilir)</p>
+              <p className="font-semibold">category_id sütununa Kategoriler sayfasındaki slug&apos;ı yazın</p>
+              <p>Örnek: <span className="font-mono bg-blue-100 px-1 rounded">injector-clamps</span> veya <span className="font-mono bg-blue-100 px-1 rounded">Enjektör Kelepçeleri</span></p>
+              <p className="text-blue-500">Şablonu indirince 2. sayfada tüm kategorilerin listesi hazır gelir.</p>
             </div>
           </div>
           <button
             onClick={downloadTemplate}
-            className="flex items-center gap-2 text-sm text-[#C0202A] hover:underline"
+            className="flex items-center gap-2 text-sm text-[#C0202A] hover:underline font-medium"
           >
-            <Download size={14} /> Örnek şablonu indir (CSV)
+            <Download size={14} /> Örnek şablonu indir (Excel — kategoriler dahil)
           </button>
 
           {/* Drop zone */}
@@ -251,16 +316,16 @@ export default function BulkUpload({ onClose }: BulkUploadProps) {
             </div>
           </label>
           <div className="flex gap-3">
-          <button
-            onClick={handleSubmit}
-            disabled={!rows.length || loading}
-            className="flex items-center gap-2 bg-[#0D1B2A] text-white px-6 py-3 rounded-xl font-semibold hover:bg-[#1a2f45] transition-colors disabled:opacity-50"
-          >
-            {loading ? <><Loader2 size={16} className="animate-spin" /> Yükleniyor...</> : <><Upload size={16} /> {rows.length} Ürünü Yükle</>}
-          </button>
-          <button onClick={onClose} className="px-6 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors">
-            İptal
-          </button>
+            <button
+              onClick={handleSubmit}
+              disabled={!rows.length || loading}
+              className="flex items-center gap-2 bg-[#0D1B2A] text-white px-6 py-3 rounded-xl font-semibold hover:bg-[#1a2f45] transition-colors disabled:opacity-50"
+            >
+              {loading ? <><Loader2 size={16} className="animate-spin" /> Yükleniyor...</> : <><Upload size={16} /> {rows.length} Ürünü Yükle</>}
+            </button>
+            <button onClick={onClose} className="px-6 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors">
+              İptal
+            </button>
           </div>
         </div>
       </div>
