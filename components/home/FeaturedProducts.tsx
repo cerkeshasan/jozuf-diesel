@@ -20,10 +20,10 @@ export default function FeaturedProducts({ products, lang, t, isFeatured = true 
       <div className="max-w-7xl mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="font-oswald text-4xl font-bold text-[#0D1B2A] mb-2">
-            {isFeatured ? t.home.featuredProducts : "Ürünlerimiz"}
+            {isFeatured ? t.home.featuredProducts : t.home.allProducts}
           </h2>
           <p className="text-gray-500">
-            {isFeatured ? t.home.featuredSubtitle : "Tüm stok ürünlerimizi keşfedin"}
+            {isFeatured ? t.home.featuredSubtitle : t.home.allProductsSubtitle}
           </p>
         </div>
 

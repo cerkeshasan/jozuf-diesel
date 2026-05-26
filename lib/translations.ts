@@ -32,6 +32,8 @@ export const translations = {
       categoriesSubtitle: "Premium diesel injection parts by brand",
       featuredProducts: "Featured Products",
       featuredSubtitle: "Best-selling injector parts",
+      allProducts: "Our Products",
+      allProductsSubtitle: "Explore all products in stock",
       whyUs: "Why Jozuf Diesel?",
       whyUsFeatures: [
         { title: "ISO 9001 Certified", desc: "All parts meet international quality standards and are tested before shipment." },
@@ -184,6 +186,8 @@ export const translations = {
       categoriesSubtitle: "Markaya göre premium dizel enjeksiyon parçaları",
       featuredProducts: "Öne Çıkan Ürünler",
       featuredSubtitle: "En çok satan enjektör parçaları",
+      allProducts: "Ürünlerimiz",
+      allProductsSubtitle: "Tüm stok ürünlerimizi keşfedin",
       whyUs: "Neden Jozuf Diesel?",
       whyUsFeatures: [
         { title: "ISO 9001 Sertifikalı", desc: "Tüm parçalar uluslararası kalite standartlarını karşılar ve sevkiyat öncesi test edilir." },
@@ -336,6 +340,8 @@ export const translations = {
       categoriesSubtitle: "Запчасти Common Rail по брендам",
       featuredProducts: "Популярные товары",
       featuredSubtitle: "Лучшие запчасти для инжектора",
+      allProducts: "Наши товары",
+      allProductsSubtitle: "Смотрите все товары в наличии",
       whyUs: "Почему Jozuf Diesel?",
       whyUsFeatures: [
         { title: "Сертификат ISO 9001", desc: "Все детали соответствуют международным стандартам качества и проходят проверку перед отправкой." },
@@ -488,6 +494,8 @@ export const translations = {
       categoriesSubtitle: "قطع غيار ديزل Common Rail حسب الماركة",
       featuredProducts: "المنتجات المميزة",
       featuredSubtitle: "أفضل قطع غيار الحاقن",
+      allProducts: "منتجاتنا",
+      allProductsSubtitle: "استعرض جميع المنتجات المتوفرة",
       whyUs: "لماذا Jozuf Diesel؟",
       whyUsFeatures: [
         { title: "شهادة ISO 9001", desc: "جميع القطع تستوفي معايير الجودة الدولية وتُختبر قبل الشحن." },
