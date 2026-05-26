@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Mail, CheckCircle, Eye, Trash2, RefreshCw } from "lucide-react";
-import { createClient } from "@supabase/supabase-js";
+import { adminFetch } from "@/lib/admin-fetch";
 
 interface Message {
   id: string;
@@ -15,13 +15,6 @@ interface Message {
   created_at: string;
 }
 
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-}
-
 export default function AdminMessagesPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,27 +23,25 @@ export default function AdminMessagesPage() {
 
   const fetchMessages = async () => {
     setLoading(true);
-    const supabase = getSupabase();
-    let q = supabase.from("contact_messages").select("*").order("created_at", { ascending: false });
-    if (filter === "unread") q = q.eq("is_read", false);
-    const { data } = await q;
-    setMessages(data || []);
+    const params = new URLSearchParams();
+    if (filter === "unread") params.set("filter", "unread");
+    const res = await adminFetch(`/api/contact-messages?${params}`);
+    const data = await res.json();
+    setMessages(Array.isArray(data) ? data : []);
     setLoading(false);
   };
 
   useEffect(() => { fetchMessages(); }, [filter]);
 
   const markRead = async (id: string) => {
-    const supabase = getSupabase();
-    await supabase.from("contact_messages").update({ is_read: true }).eq("id", id);
+    await adminFetch(`/api/contact-messages?id=${id}`, { method: "PUT" });
     setMessages(prev => prev.map(m => m.id === id ? { ...m, is_read: true } : m));
     if (selected?.id === id) setSelected(prev => prev ? { ...prev, is_read: true } : null);
   };
 
   const deleteMsg = async (id: string) => {
     if (!confirm("Bu mesajı silmek istiyor musunuz?")) return;
-    const supabase = getSupabase();
-    await supabase.from("contact_messages").delete().eq("id", id);
+    await adminFetch(`/api/contact-messages?id=${id}`, { method: "DELETE" });
     setMessages(prev => prev.filter(m => m.id !== id));
     if (selected?.id === id) setSelected(null);
   };
