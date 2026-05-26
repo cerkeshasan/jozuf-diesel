@@ -9,30 +9,10 @@ interface WhyUsProps {
   t: Translations;
 }
 
-const features = [
-  {
-    icon: Award,
-    title: "ISO 9001 Certified",
-    desc: "All parts meet international quality standards and are tested before shipment.",
-  },
-  {
-    icon: Shield,
-    title: "OEM Quality",
-    desc: "Original manufacturer quality parts for all major diesel injection systems.",
-  },
-  {
-    icon: Globe,
-    title: "Global Supply",
-    desc: "We ship to 50+ countries worldwide with fast and reliable logistics.",
-  },
-  {
-    icon: Headphones,
-    title: "Technical Support",
-    desc: "Expert technical assistance available via WhatsApp and email.",
-  },
-];
+const icons = [Award, Shield, Globe, Headphones];
 
 export default function WhyUs({ lang, t }: WhyUsProps) {
+  const features = t.home.whyUsFeatures.map((f, i) => ({ ...f, icon: icons[i] }));
   return (
     <section className="py-20 bg-[#0D1B2A]">
       <div className="max-w-7xl mx-auto px-4">

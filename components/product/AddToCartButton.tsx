@@ -26,6 +26,20 @@ function getVariantLabel(variant: VariantGroup, lang: string): string {
 
 export default function AddToCartButton({ product, lang, t }: AddToCartButtonProps) {
   const [qty, setQty] = useState(1);
+  const [qtyInput, setQtyInput] = useState("1");
+
+  const handleQtyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setQtyInput(e.target.value);
+    const parsed = parseInt(e.target.value);
+    if (!isNaN(parsed) && parsed >= 1) setQty(parsed);
+  };
+
+  const handleQtyBlur = () => {
+    const parsed = parseInt(qtyInput);
+    const valid = isNaN(parsed) || parsed < 1 ? 1 : parsed;
+    setQty(valid);
+    setQtyInput(String(valid));
+  };
   const [added, setAdded] = useState(false);
   const [particles, setParticles] = useState<{ id: number; x: number; y: number }[]>([]);
   const [showInquiry, setShowInquiry] = useState(false);
@@ -115,14 +129,21 @@ export default function AddToCartButton({ product, lang, t }: AddToCartButtonPro
         <span className="text-sm font-medium text-gray-600">{t.cart.quantity}:</span>
         <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
           <button
-            onClick={() => setQty((q) => Math.max(1, q - 1))}
+            onClick={() => { const v = Math.max(1, qty - 1); setQty(v); setQtyInput(String(v)); }}
             className="px-3 py-2 hover:bg-gray-100 transition-colors"
           >
             <Minus size={16} />
           </button>
-          <span className="px-4 py-2 font-semibold min-w-[40px] text-center">{qty}</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={qtyInput}
+            onChange={handleQtyChange}
+            onBlur={handleQtyBlur}
+            className="px-2 py-2 font-semibold w-14 text-center outline-none bg-transparent"
+          />
           <button
-            onClick={() => setQty((q) => q + 1)}
+            onClick={() => { const v = qty + 1; setQty(v); setQtyInput(String(v)); }}
             className="px-3 py-2 hover:bg-gray-100 transition-colors"
           >
             <Plus size={16} />

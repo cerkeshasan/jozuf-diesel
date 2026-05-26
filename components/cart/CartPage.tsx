@@ -10,6 +10,12 @@ import type { Translations } from "@/lib/translations";
 import Button from "@/components/ui/Button";
 import OrderFormModal from "@/components/cart/OrderFormModal";
 
+function CartItemImage({ src, alt }: { src: string; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <div className="w-full h-full flex items-center justify-center text-gray-300 text-2xl">⚙️</div>;
+  return <Image src={src} alt={alt} width={80} height={80} className="object-contain p-2 w-full h-full" onError={() => setFailed(true)} />;
+}
+
 interface CartPageProps {
   lang: string;
   t: Translations;
@@ -99,7 +105,7 @@ export default function CartPage({ lang, t }: CartPageProps) {
                 {/* Image */}
                 <div className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0">
                   {item.image ? (
-                    <Image src={item.image} alt={item.product_name} width={80} height={80} className="object-contain p-2 w-full h-full" />
+                    <CartItemImage src={item.image} alt={item.product_name} />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-300 text-2xl">⚙️</div>
                   )}

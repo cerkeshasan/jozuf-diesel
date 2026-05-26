@@ -26,13 +26,30 @@ export default function ProductCard({ product, lang, t }: ProductCardProps) {
   const minQty = product.min_order_qty || 1;
   const step = product.qty_step || 1;
   const [qty, setQty] = useState(minQty);
+  const [qtyInput, setQtyInput] = useState(String(minQty));
 
   const adjustQty = (delta: number, e: React.MouseEvent) => {
     e.preventDefault();
     setQty(prev => {
-      const next = prev + delta * step;
-      return Math.max(minQty, next);
+      const next = Math.max(minQty, prev + delta * step);
+      setQtyInput(String(next));
+      return next;
     });
+  };
+
+  const handleQtyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    setQtyInput(e.target.value);
+    const parsed = parseInt(e.target.value);
+    if (!isNaN(parsed) && parsed >= minQty) setQty(parsed);
+  };
+
+  const handleQtyBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    const parsed = parseInt(qtyInput);
+    const valid = isNaN(parsed) || parsed < minQty ? minQty : parsed;
+    setQty(valid);
+    setQtyInput(String(valid));
   };
 
   const stockVariant = {
@@ -147,7 +164,15 @@ export default function ProductCard({ product, lang, t }: ProductCardProps) {
                 >
                   <Minus size={12} />
                 </button>
-                <span className="text-sm font-semibold text-[#0D1B2A] min-w-[2rem] text-center">{qty}</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={qtyInput}
+                  onChange={handleQtyChange}
+                  onBlur={handleQtyBlur}
+                  onClick={e => e.preventDefault()}
+                  className="text-sm font-semibold text-[#0D1B2A] w-10 text-center bg-transparent outline-none"
+                />
                 <button
                   onClick={e => adjustQty(1, e)}
                   className="px-2 py-1.5 text-gray-500 hover:bg-gray-100 transition-colors"

@@ -51,7 +51,7 @@ export default async function LangLayout({ children, params }: LangLayoutProps) 
   );
 
   return (
-    <div dir={dir} lang={lang}>
+    <div dir={dir} lang={lang} className="overflow-x-hidden">
       <TopBar lang={lang} settings={settings} />
       <Header lang={lang} t={t} categories={categories || []} settings={settings} />
       <main className="flex-1">{children}</main>

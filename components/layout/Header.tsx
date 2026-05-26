@@ -168,7 +168,7 @@ export default function Header({ lang, t, categories, settings = {} }: HeaderPro
                       value={searchQuery}
                       onChange={(e) => handleSearchChange(e.target.value)}
                       placeholder={t.hero.searchPlaceholder}
-                      className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-52 focus:outline-none focus:ring-2 focus:ring-[#C0202A]"
+                      className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-36 sm:w-52 focus:outline-none focus:ring-2 focus:ring-[#C0202A]"
                     />
                     {searchLoading && (
                       <span className="absolute right-8 top-1/2 -translate-y-1/2 w-3 h-3 border-2 border-[#C0202A] border-t-transparent rounded-full animate-spin" />

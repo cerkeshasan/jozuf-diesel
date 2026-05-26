@@ -5,9 +5,14 @@
   --red: #C0202A;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   font-family: 'Inter', sans-serif;
   color: #0D1B2A;
+  overflow-x: hidden;
 }
 
 @keyframes slideLeft {
@@ -34,6 +39,9 @@ body {
 }
 
 [dir="rtl"] { text-align: right; }
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }

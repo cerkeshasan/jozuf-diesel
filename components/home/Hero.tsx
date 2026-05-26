@@ -24,6 +24,7 @@ export default async function Hero({ lang }: HeroProps) {
   );
 
   const heroImageUrl = settings["hero_image_url"] || "/images/hero-injector.png";
+  const heroVideoUrl = settings["hero_video_url"] || "";
 
   return (
     <section className="relative bg-[#0D1B2A] py-16 md:py-24">
@@ -45,6 +46,7 @@ export default async function Hero({ lang }: HeroProps) {
           <HeroImage
             src={heroImageUrl}
             alt={settings[`hero_title_${lang}`] || "Jozuf Diesel"}
+            videoSrc={heroVideoUrl || undefined}
           />
         </div>
       </div>

@@ -117,6 +117,23 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
             <p className="text-gray-400 mt-2">{(category as Record<string, string | null>)[`description_${lang}`]}</p>
           )}
           <p className="text-gray-500 text-sm mt-1">{count || 0} {t.filters.products}</p>
+
+          {/* Alt kategori chips — mobilde kaydırılabilir */}
+          {(subCategories || []).length > 0 && (
+            <div className="mt-5 -mx-4 px-4 overflow-x-auto scrollbar-hide">
+              <div className="flex gap-2 pb-1" style={{ width: "max-content" }}>
+                {(subCategories || []).map((sub) => (
+                  <Link
+                    key={sub.id}
+                    href={`/${lang}/kategori/${sub.slug}`}
+                    className="flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium border border-white/20 text-gray-300 hover:bg-white hover:text-[#0D1B2A] transition-colors whitespace-nowrap"
+                  >
+                    {getCategoryName(sub, lang)}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
