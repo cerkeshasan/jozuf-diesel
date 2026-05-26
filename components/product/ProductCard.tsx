@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
-import { ShoppingCart, Star, Check, Plus, Minus } from "lucide-react";
+import { ShoppingCart, Star, Check, Plus, Minus, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Product } from "@/lib/supabase";
 import { getProductName } from "@/lib/translations";
 import { useCartStore } from "@/lib/cart-store";
@@ -21,7 +21,34 @@ export default function ProductCard({ product, lang, t }: ProductCardProps) {
   const [added, setAdded] = useState(false);
   const [particles, setParticles] = useState<{ id: number; x: number; y: number }[]>([]);
   const [hovering, setHovering] = useState(false);
-  const hasSecondImage = (product.images?.length ?? 0) > 1;
+
+  const images = (product.images || []).filter(Boolean);
+  const hasMultiple = images.length > 1;
+  const [imgIndex, setImgIndex] = useState(0);
+  const [direction, setDirection] = useState(0);
+  const touchStartX = useRef(0);
+  const didSwipe = useRef(false);
+
+  const goTo = (dir: number, e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    setDirection(dir);
+    setImgIndex(i => Math.max(0, Math.min(i + dir, images.length - 1)));
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    didSwipe.current = false;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 40 && hasMultiple) {
+      didSwipe.current = true;
+      goTo(diff > 0 ? 1 : -1);
+    }
+  };
+
 
   const minQty = product.min_order_qty || 1;
   const step = product.qty_step || 1;
@@ -91,27 +118,73 @@ export default function ProductCard({ product, lang, t }: ProductCardProps) {
     >
       <Link href={`/${lang}/urunler/${product.slug}`}>
         <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 border border-transparent hover:border-[#C0202A] group">
-          {/* Image */}
+          {/* Image Carousel */}
           <div
             className="aspect-square bg-gray-50 relative overflow-hidden"
             onMouseEnter={() => setHovering(true)}
             onMouseLeave={() => setHovering(false)}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
           >
-            {product.images?.[0] ? (
+            {images.length > 0 ? (
               <>
-                <Image
-                  src={product.images[0]}
-                  alt={getProductName(product, lang)}
-                  fill
-                  className={`object-contain p-4 transition-all duration-300 ${hovering ? "scale-105" : "scale-100"} ${hovering && hasSecondImage ? "opacity-0" : "opacity-100"}`}
-                />
-                {hasSecondImage && (
-                  <Image
-                    src={product.images[1]}
-                    alt={getProductName(product, lang)}
-                    fill
-                    className={`object-contain p-4 transition-all duration-300 scale-105 ${hovering ? "opacity-100" : "opacity-0"}`}
-                  />
+                <AnimatePresence initial={false} custom={direction}>
+                  <motion.div
+                    key={imgIndex}
+                    custom={direction}
+                    variants={{
+                      enter: (d: number) => ({ x: d > 0 ? "100%" : "-100%", opacity: 0 }),
+                      center: { x: 0, opacity: 1 },
+                      exit: (d: number) => ({ x: d > 0 ? "-100%" : "100%", opacity: 0 }),
+                    }}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{ duration: 0.25, ease: "easeInOut" }}
+                    className="absolute inset-0"
+                  >
+                    <Image
+                      src={images[imgIndex]}
+                      alt={getProductName(product, lang)}
+                      fill
+                      className="object-contain p-4"
+                    />
+                  </motion.div>
+                </AnimatePresence>
+
+                {/* Masaüstü ok tuşları */}
+                {hasMultiple && hovering && (
+                  <>
+                    {imgIndex > 0 && (
+                      <button
+                        onClick={e => goTo(-1, e)}
+                        className="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-7 h-7 bg-white/80 rounded-full flex items-center justify-center shadow hover:bg-white transition-colors"
+                      >
+                        <ChevronLeft size={14} />
+                      </button>
+                    )}
+                    {imgIndex < images.length - 1 && (
+                      <button
+                        onClick={e => goTo(1, e)}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-7 h-7 bg-white/80 rounded-full flex items-center justify-center shadow hover:bg-white transition-colors"
+                      >
+                        <ChevronRight size={14} />
+                      </button>
+                    )}
+                  </>
+                )}
+
+                {/* Dot indikatörler */}
+                {hasMultiple && (
+                  <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1 z-10">
+                    {images.map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={e => { e.preventDefault(); e.stopPropagation(); setDirection(i > imgIndex ? 1 : -1); setImgIndex(i); }}
+                        className={`w-1.5 h-1.5 rounded-full transition-all ${i === imgIndex ? "bg-[#C0202A] w-3" : "bg-gray-300"}`}
+                      />
+                    ))}
+                  </div>
                 )}
               </>
             ) : (
@@ -120,7 +193,7 @@ export default function ProductCard({ product, lang, t }: ProductCardProps) {
               </div>
             )}
             {product.is_featured && (
-              <span className="absolute top-2 left-2 bg-[#C0202A] text-white text-xs px-2 py-0.5 rounded-full font-semibold">
+              <span className="absolute top-2 left-2 bg-[#C0202A] text-white text-xs px-2 py-0.5 rounded-full font-semibold z-10">
                 ★ Featured
               </span>
             )}
