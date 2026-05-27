@@ -1,6 +1,7 @@
 import type { OrderItem } from "./supabase";
 
 const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP || "905517042268";
+const TG_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM || "";
 
 export function buildWhatsAppMessage(items: OrderItem[], note?: string, lang = "en"): string {
   const greetings: Record<string, string> = {
@@ -51,6 +52,21 @@ export function buildWhatsAppUrl(items: OrderItem[], note?: string, lang = "en",
 export function buildDirectWhatsAppUrl(number?: string): string {
   const num = (number || WA_NUMBER).replace(/\D/g, "");
   return `https://wa.me/${num}`;
+}
+
+export function buildTelegramUrl(items: OrderItem[], note?: string, lang = "ru", username?: string): string {
+  const message = buildWhatsAppMessage(items, note, lang);
+  const tg = username || TG_USERNAME;
+  if (tg) return `https://t.me/${tg}?text=${encodeURIComponent(message)}`;
+  const num = WA_NUMBER.replace(/\D/g, "");
+  return `https://t.me/+${num}`;
+}
+
+export function buildDirectTelegramUrl(username?: string): string {
+  const tg = username || TG_USERNAME;
+  if (tg) return `https://t.me/${tg}`;
+  const num = WA_NUMBER.replace(/\D/g, "");
+  return `https://t.me/+${num}`;
 }
 
 export function generateOrderNumber(): string {

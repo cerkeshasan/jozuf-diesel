@@ -66,9 +66,18 @@ export default function OrderFormModal({ items, note, lang, onClose, onSuccess }
     if (!kvkkConsent) { setKvkkError(true); return; }
 
     setLoading(true);
-    const waNumber = process.env.NEXT_PUBLIC_WHATSAPP || "905517042268";
     const message = buildMessage(items, note, form, lang);
-    const url = `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`;
+    const isRu = lang === "ru";
+    let url: string;
+    if (isRu) {
+      const tgUsername = process.env.NEXT_PUBLIC_TELEGRAM || "";
+      url = tgUsername
+        ? `https://t.me/${tgUsername}?text=${encodeURIComponent(message)}`
+        : `https://t.me/+${(process.env.NEXT_PUBLIC_WHATSAPP || "905517042268").replace(/\D/g, "")}`;
+    } else {
+      const waNumber = process.env.NEXT_PUBLIC_WHATSAPP || "905517042268";
+      url = `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`;
+    }
 
     // Save order to DB (non-blocking)
     try {
@@ -112,7 +121,9 @@ export default function OrderFormModal({ items, note, lang, onClose, onSuccess }
           <div className="flex items-center justify-between p-6 border-b border-gray-100">
             <div>
               <h2 className="font-oswald font-bold text-[#0D1B2A] text-xl">Sipariş Bilgileri</h2>
-              <p className="text-sm text-gray-400 mt-0.5">WhatsApp üzerinden teklif alın</p>
+              <p className="text-sm text-gray-400 mt-0.5">
+                {lang === "ru" ? "Получить предложение через Telegram" : "WhatsApp üzerinden teklif alın"}
+              </p>
             </div>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
               <X size={20} />
@@ -204,10 +215,12 @@ export default function OrderFormModal({ items, note, lang, onClose, onSuccess }
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#25D366] hover:bg-[#1ebe5a] text-white py-4 rounded-xl font-semibold text-base flex items-center justify-center gap-3 transition-colors disabled:opacity-50"
+              className={`w-full text-white py-4 rounded-xl font-semibold text-base flex items-center justify-center gap-3 transition-colors disabled:opacity-50 ${lang === "ru" ? "bg-[#229ED9] hover:bg-[#1a8ec2]" : "bg-[#25D366] hover:bg-[#1ebe5a]"}`}
             >
               {loading ? (
                 <><Loader2 size={20} className="animate-spin" /> Açılıyor...</>
+              ) : lang === "ru" ? (
+                <><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.925 8.175l-2.025 9.525c-.15.675-.548.84-1.11.525l-3-2.21-1.448 1.395c-.158.158-.293.293-.6.293l.21-3.045 5.528-4.995c.24-.21-.052-.33-.368-.12L6.45 13.89l-2.948-.923c-.64-.2-.653-.638.135-.945l11.475-4.425c.533-.203 1 .123.813.578z"/></svg> Telegram&apos;da Devam Et</>
               ) : (
                 <><MessageCircle size={20} /> WhatsApp&apos;ta Devam Et</>
               )}

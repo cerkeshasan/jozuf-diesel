@@ -31,6 +31,14 @@ function WhatsAppIcon() {
   );
 }
 
+function TelegramIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="white">
+      <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.925 8.175l-2.025 9.525c-.15.675-.548.84-1.11.525l-3-2.21-1.448 1.395c-.158.158-.293.293-.6.293l.21-3.045 5.528-4.995c.24-.21-.052-.33-.368-.12L6.45 13.89l-2.948-.923c-.64-.2-.653-.638.135-.945l11.475-4.425c.533-.203 1 .123.813.578z"/>
+    </svg>
+  );
+}
+
 export default async function ContactPage({ params }: PageProps) {
   const { lang } = await params;
   const t = getTranslations(lang);
@@ -47,21 +55,27 @@ export default async function ContactPage({ params }: PageProps) {
   const langKey = `working_hours_${lang}`;
   const workingHours = s[langKey] || s["working_hours"] || "Mon-Sat 08:00-18:00";
   const whatsappNum = (s["whatsapp"] || "905517042268").replace(/\D/g, "");
+  const telegramUsername = (s["telegram"] || "").trim();
+  const telegramHref = telegramUsername ? `https://t.me/${telegramUsername}` : `https://t.me/+${whatsappNum}`;
   const phoneTel = phone.replace(/\s/g, "");
   const mapsEmbedUrl = s["maps_embed_url"] || "";
   const mapsAddressUrl = s["maps_address_url"] || `https://maps.google.com/?q=${encodeURIComponent(address)}`;
 
   type ContactItem = {
-    iconType: "Phone" | "Mail" | "WhatsApp" | "MapPin" | "Clock";
+    iconType: "Phone" | "Mail" | "WhatsApp" | "Telegram" | "MapPin" | "Clock";
     label: string;
     value: string;
     href?: string;
   };
 
+  const messagingItem: ContactItem = lang === "ru"
+    ? { iconType: "Telegram", label: "Telegram", value: telegramUsername || phone, href: telegramHref }
+    : { iconType: "WhatsApp", label: t.contact.whatsapp, value: phone, href: `https://wa.me/${whatsappNum}` };
+
   const contacts: ContactItem[] = [
     { iconType: "Phone", label: t.contact.phone2, value: phone, href: `tel:${phoneTel}` },
     { iconType: "Mail", label: t.contact.emailLabel, value: email, href: `mailto:${email}` },
-    { iconType: "WhatsApp", label: t.contact.whatsapp, value: phone, href: `https://wa.me/${whatsappNum}` },
+    messagingItem,
     { iconType: "MapPin", label: t.contact.address, value: address, href: mapsAddressUrl },
     { iconType: "Clock", label: t.contact.hours, value: workingHours },
   ];
@@ -84,11 +98,12 @@ export default async function ContactPage({ params }: PageProps) {
             <div className="space-y-4">
               {contacts.map((item, i) => {
                 const iconMap = { Phone, Mail, MapPin, Clock };
-                const IconComp = item.iconType !== "WhatsApp" ? iconMap[item.iconType as keyof typeof iconMap] : null;
+                const isMessaging = item.iconType === "WhatsApp" || item.iconType === "Telegram";
+                const IconComp = !isMessaging ? iconMap[item.iconType as keyof typeof iconMap] : null;
                 return (
                   <div key={i} className="flex items-start gap-4 bg-white p-4 rounded-2xl shadow-sm">
-                    <div className="w-10 h-10 bg-[#C0202A] rounded-xl flex items-center justify-center shrink-0">
-                      {IconComp ? <IconComp size={20} className="text-white" /> : <WhatsAppIcon />}
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${item.iconType === "Telegram" ? "bg-[#229ED9]" : "bg-[#C0202A]"}`}>
+                      {IconComp ? <IconComp size={20} className="text-white" /> : item.iconType === "Telegram" ? <TelegramIcon /> : <WhatsAppIcon />}
                     </div>
                     <div>
                       <p className="text-sm text-gray-400 font-medium">{item.label}</p>

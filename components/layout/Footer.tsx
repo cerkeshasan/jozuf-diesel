@@ -85,6 +85,15 @@ function WhatsappIcon() {
   );
 }
 
+function TelegramIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+      <circle cx="16" cy="16" r="16" fill="#229ED9" />
+      <path d="M23.9 10.9l-2.7 12.7c-.2.9-.73 1.12-1.48.7l-4-2.95-1.93 1.86c-.21.21-.39.39-.8.39l.28-4.06 7.37-6.66c.32-.28-.07-.44-.49-.16L8.6 18.52l-3.93-1.23c-.85-.27-.87-.85.18-1.26L23.1 9.62c.71-.27 1.33.17 1.08 1.28H23.9z" fill="#fff" />
+    </svg>
+  );
+}
+
 const socialConfig: { key: string; label: string; Icon: () => React.ReactElement }[] = [
   { key: "whatsapp", label: "WhatsApp", Icon: WhatsappIcon },
   { key: "facebook", label: "Facebook", Icon: FacebookIcon },
@@ -156,6 +165,26 @@ export default function Footer({ lang, t, settings = {} }: FooterProps) {
             {/* Sosyal medya ikonları */}
             <div className="flex gap-3 flex-wrap">
               {socialConfig.map(({ key, label, Icon }) => {
+                // Rusça dilinde WhatsApp → Telegram
+                if (key === "whatsapp" && lang === "ru") {
+                  const tgRaw = (settings["telegram"] || "").trim();
+                  const tgHref = tgRaw
+                    ? `https://t.me/${tgRaw}`
+                    : `https://t.me/+${whatsappNum}`;
+                  return (
+                    <a
+                      key="telegram"
+                      href={tgHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Telegram"
+                      title="Telegram"
+                      className="transition-all duration-200 hover:scale-110 hover:opacity-90 rounded-lg"
+                    >
+                      <TelegramIcon />
+                    </a>
+                  );
+                }
                 const raw = (settings[key] || "").trim();
                 let href = "#";
                 if (raw) {
@@ -243,16 +272,28 @@ export default function Footer({ lang, t, settings = {} }: FooterProps) {
               </li>
             </ul>
 
-            {/* WhatsApp CTA */}
-            <a
-              href={`https://wa.me/${whatsappNum}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-6 inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#1ebe5a] text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
-            >
-              <WhatsappIcon />
-              <span className="ml-1">WhatsApp</span>
-            </a>
+            {/* WhatsApp / Telegram CTA */}
+            {lang === "ru" ? (
+              <a
+                href={settings["telegram"] ? `https://t.me/${settings["telegram"]}` : `https://t.me/+${whatsappNum}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-6 inline-flex items-center gap-2 bg-[#229ED9] hover:bg-[#1a8ec2] text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="22" height="22"><path d="M16 0C7.163 0 0 7.163 0 16s7.163 16 16 16 16-7.163 16-16S24.837 0 16 0zm7.9 10.9l-2.7 12.7c-.2.9-.73 1.12-1.48.7l-4-2.95-1.93 1.86c-.21.21-.39.39-.8.39l.28-4.06 7.37-6.66c.32-.28-.07-.44-.49-.16L8.6 18.52l-3.93-1.23c-.85-.27-.87-.85.18-1.26L23.1 9.62c.71-.27 1.33.17 1.08 1.28H23.9z" fill="#fff"/></svg>
+                <span className="ml-1">Telegram</span>
+              </a>
+            ) : (
+              <a
+                href={`https://wa.me/${whatsappNum}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-6 inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#1ebe5a] text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+              >
+                <WhatsappIcon />
+                <span className="ml-1">WhatsApp</span>
+              </a>
+            )}
           </motion.div>
         </motion.div>
       </div>

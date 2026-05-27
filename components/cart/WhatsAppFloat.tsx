@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useCartStore } from "@/lib/cart-store";
-import { buildWhatsAppUrl, buildDirectWhatsAppUrl } from "@/lib/whatsapp";
+import { buildWhatsAppUrl, buildDirectWhatsAppUrl, buildTelegramUrl, buildDirectTelegramUrl } from "@/lib/whatsapp";
 
 function WhatsAppSVG() {
   return (
@@ -15,42 +15,59 @@ function WhatsAppSVG() {
   );
 }
 
+function TelegramSVG() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="28" height="28">
+      <path
+        d="M16 0C7.163 0 0 7.163 0 16s7.163 16 16 16 16-7.163 16-16S24.837 0 16 0zm7.9 10.9l-2.7 12.7c-.2.9-.73 1.12-1.48.7l-4-2.95-1.93 1.86c-.21.21-.39.39-.8.39l.28-4.06 7.37-6.66c.32-.28-.07-.44-.49-.16L8.6 18.52l-3.93-1.23c-.85-.27-.87-.85.18-1.26L23.1 9.62c.71-.27 1.33.17 1.08 1.28H23.9z"
+        fill="#fff"
+      />
+    </svg>
+  );
+}
+
 interface WhatsAppFloatProps {
   lang: string;
   whatsappNumber?: string;
+  telegramUsername?: string;
 }
 
-export default function WhatsAppFloat({ lang, whatsappNumber }: WhatsAppFloatProps) {
+export default function WhatsAppFloat({ lang, whatsappNumber, telegramUsername }: WhatsAppFloatProps) {
   const items = useCartStore((s) => s.items);
   const note = useCartStore((s) => s.note);
+  const isRu = lang === "ru";
 
   const handleClick = () => {
-    const num = whatsappNumber || undefined;
-    const url =
-      items.length > 0
-        ? buildWhatsAppUrl(items, note, lang, num)
-        : buildDirectWhatsAppUrl(num);
+    let url: string;
+    if (isRu) {
+      url = items.length > 0
+        ? buildTelegramUrl(items, note, lang, telegramUsername)
+        : buildDirectTelegramUrl(telegramUsername);
+    } else {
+      url = items.length > 0
+        ? buildWhatsAppUrl(items, note, lang, whatsappNumber)
+        : buildDirectWhatsAppUrl(whatsappNumber);
+    }
     window.open(url, "_blank");
   };
 
   return (
     <motion.button
       onClick={handleClick}
-      className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-[#25D366] rounded-full flex items-center justify-center shadow-2xl"
+      className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl ${isRu ? "bg-[#229ED9]" : "bg-[#25D366]"}`}
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.95 }}
       animate={{
-        boxShadow: [
-          "0 0 0 0 rgba(37,211,102,0.7)",
-          "0 0 0 16px rgba(37,211,102,0)",
-        ],
+        boxShadow: isRu
+          ? ["0 0 0 0 rgba(34,158,217,0.7)", "0 0 0 16px rgba(34,158,217,0)"]
+          : ["0 0 0 0 rgba(37,211,102,0.7)", "0 0 0 16px rgba(37,211,102,0)"],
       }}
       transition={{
         boxShadow: { duration: 1.5, repeat: Infinity, ease: "easeOut" },
       }}
-      aria-label="WhatsApp"
+      aria-label={isRu ? "Telegram" : "WhatsApp"}
     >
-      <WhatsAppSVG />
+      {isRu ? <TelegramSVG /> : <WhatsAppSVG />}
       {items.length > 0 && (
         <span className="absolute -top-1 -right-1 bg-[#C0202A] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
           {items.length}

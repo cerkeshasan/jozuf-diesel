@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingCart, MessageCircle, Plus, Minus, HelpCircle, Check } from "lucide-react";
 import { useCartStore } from "@/lib/cart-store";
-import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { buildWhatsAppUrl, buildTelegramUrl } from "@/lib/whatsapp";
 import { getProductName } from "@/lib/translations";
 import type { Product, VariantGroup } from "@/lib/supabase";
 import type { Translations } from "@/lib/translations";
@@ -71,11 +71,10 @@ export default function AddToCartButton({ product, lang, t }: AddToCartButtonPro
   };
 
   const handleBuyNow = () => {
-    const url = buildWhatsAppUrl(
-      [{ product_id: product.id, product_name: productName, oem_code: product.oem_code || "", quantity: qty }],
-      undefined,
-      lang
-    );
+    const orderItems = [{ product_id: product.id, product_name: productName, oem_code: product.oem_code || "", quantity: qty }];
+    const url = lang === "ru"
+      ? buildTelegramUrl(orderItems, undefined, lang)
+      : buildWhatsAppUrl(orderItems, undefined, lang);
     window.open(url, "_blank");
   };
 
@@ -212,15 +211,17 @@ export default function AddToCartButton({ product, lang, t }: AddToCartButtonPro
           </motion.button>
         </div>
 
-        <Button
-          variant="whatsapp"
-          size="lg"
+        <button
           onClick={handleBuyNow}
-          className="gap-2"
+          className={`w-full inline-flex items-center justify-center gap-2 font-semibold transition-all duration-200 rounded-lg px-8 py-4 text-lg text-white ${lang === "ru" ? "bg-[#229ED9] hover:bg-[#1a8ec2]" : "bg-[#25D366] hover:bg-[#1ebe5a]"}`}
         >
-          <MessageCircle size={20} />
-          {t.product.buyNow || "Hemen Al"}
-        </Button>
+          {lang === "ru" ? (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.925 8.175l-2.025 9.525c-.15.675-.548.84-1.11.525l-3-2.21-1.448 1.395c-.158.158-.293.293-.6.293l.21-3.045 5.528-4.995c.24-.21-.052-.33-.368-.12L6.45 13.89l-2.948-.923c-.64-.2-.653-.638.135-.945l11.475-4.425c.533-.203 1 .123.813.578z"/></svg>
+          ) : (
+            <MessageCircle size={20} />
+          )}
+          {lang === "ru" ? "Написать в Telegram" : (t.product.buyNow || "Hemen Al")}
+        </button>
 
         <button
           onClick={() => setShowInquiry(true)}

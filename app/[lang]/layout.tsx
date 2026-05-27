@@ -56,7 +56,7 @@ export default async function LangLayout({ children, params }: LangLayoutProps) 
       <Header lang={lang} t={t} categories={categories || []} settings={settings} />
       <main className="flex-1">{children}</main>
       <Footer lang={lang} t={t} settings={settings} />
-      <WhatsAppFloat lang={lang} whatsappNumber={settings["whatsapp"]} />
+      <WhatsAppFloat lang={lang} whatsappNumber={settings["whatsapp"]} telegramUsername={settings["telegram"]} />
       <ScrollToTop />
     </div>
   );
